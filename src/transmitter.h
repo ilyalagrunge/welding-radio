@@ -1,13 +1,19 @@
+#include <AccelStepper.h>
+#include "OneButton.h"
+
 void ProbeBFunc();
 void ProbeFin();
 void StartBFunc();
 void StopBFunc();
+
 void Uroutine(int);
 void WManage();
 void SerialRoutine();
+void stepperMoves();
+void SetupTransmitter();
+void transmitterLoop();
 void Blinker();
 void LoadPars();
-void stepperMoves();
 
 #define StepOut 4
 #define DirOut 5
@@ -55,35 +61,3 @@ void stepperMoves();
 #define ParAddrDelta sizeof(float)
 #define ParCount 11
 #define MinSerialLength 10
-
-float UintAbs = 0;
-long UcountAbs = -1;
-float Utarget = 0;
-float dHdU = 0.75;
-float deltaH = 0;
-bool Probe = false;
-bool ProbeDone = false;
-bool BlinkState = false;
-bool Started = false;
-int WaitUcounter = 0;
-int CoolingCounter = 0;
-float path = 0;
-int steps = 0;
-int PULSE = 0;
-int COOLING = 0;
-int PulseDuration = 0;
-int CoolingDuration = 0;
-int RotatinDuration = 0;
-int Stepper2Speed = 0;
-int Stepper2Acc = 0;
-int step2grad = 0;
-float Stepper2WeldStep = 0;
-float TigHeight = 0;
-int WeldPerm = 0;
-int ZPerm = 0;
-int XPerm = 0;
-int NPulses = 0;
-int ROTATING = 0;
-int killme = 0;
-int step2move = 0;
-int stepmove = 0;
