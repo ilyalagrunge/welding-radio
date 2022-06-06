@@ -7,6 +7,8 @@
 #include <RF24.h>
 #include <EEPROM.h>
 
+#define zh
+
 #define DEBUG
 //#define BLINKALWAYS
 
