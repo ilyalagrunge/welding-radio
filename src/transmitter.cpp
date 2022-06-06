@@ -33,6 +33,8 @@ int killme = 0;
 int step2move = 0;
 int stepmove = 0;
 
+String SerialString = "";
+
 AccelStepper stepper(AccelStepper::DRIVER, StepOut, DirOut);
 AccelStepper stepper2(AccelStepper::DRIVER, StepOut2, DirOut2);
 OneButton ProbeB(ProbeBtn, false);
@@ -117,74 +119,84 @@ void transmitterLoop()
 
 void SerialRoutine()
 {
-    while (Serial.available())
-    {
-        String a;
-        String pars[ParCount];
-        int i = 0;
-        int index = 0;
-        a = Serial.readString();
-
-        if (a.length() > MinSerialLength)
+    char inb = 0;
+    String a = "";
+    while (Serial.available()>0){
+        inb = Serial.read();
+        if (inb != '*')
         {
-            for (i = 0; i < ParCount; i++)
-            {
-                index = a.indexOf(';');
-                pars[i] = a.substring(0, index);
-                a = a.substring(index + 1);
-                switch (i)
-                {
-                case 0:
-                case 1:
-                case 4:
-                case 5:
-                case 6:
-                case 7:
-                case 8:
-                case 9:
-                case 10:
-                    EEPROM.put(ParAddr + i * ParAddrDelta, pars[i].toInt());
-                    break;
-                case 2:
-                case 3:
-                    EEPROM.put(ParAddr + i * ParAddrDelta, pars[i].toFloat());
-                    break;
-                default:
-                    break;
-                }
-            }
-            resetFunc();
+            SerialString = String(SerialString + String(inb));
         }
         else
         {
-            if (a == "PROBE")
+            a=SerialString;
+            SerialString="";
+        }
+    }
+
+    String pars[ParCount];
+    int i = 0;
+    int index = 0;
+
+    if (a.length() > CommandSerialLength)
+    {
+        for (i = 0; i < ParCount; i++)
+        {
+            index = a.indexOf(';');
+            pars[i] = a.substring(0, index);
+            a = a.substring(index + 1);
+            switch (i)
             {
-                ProbeBFunc();
+            case 0:
+            case 1:
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+            case 8:
+            case 9:
+            case 10:
+                EEPROM.put(ParAddr + i * ParAddrDelta, pars[i].toInt());
+                break;
+            case 2:
+            case 3:
+                EEPROM.put(ParAddr + i * ParAddrDelta, pars[i].toFloat());
+                break;
+            default:
+                break;
             }
-            else if (a == "START")
-            {
-                StartBFunc();
-            }
-            else if (a == "STOP")
-            {
-                StopBFunc();
-            }
-            else if (a == "RIGHT")
-            {
-                step2move = step2minMove;
-            }
-            else if (a == "LEFT")
-            {
-                step2move = -step2minMove;
-            }
-            else if (a == "UP")
-            {
-                stepmove = stepminMove;
-            }
-            else if (a == "DOWN")
-            {
-                stepmove = -stepminMove;
-            }
+        }
+        resetFunc();
+    }
+    else if(a.length() > MinSerialLength)
+    {
+        if (a == "PROBE")
+        {
+            ProbeBFunc();
+        }
+        else if (a == "START")
+        {
+            StartBFunc();
+        }
+        else if (a == "STOP")
+        {
+            StopBFunc();
+        }
+        else if (a == "RIGHT")
+        {
+            step2move = step2minMove;
+        }
+        else if (a == "LEFT")
+        {
+            step2move = -step2minMove;
+        }
+        else if (a == "UP")
+        {
+            stepmove = stepminMove;
+        }
+        else if (a == "DOWN")
+        {
+            stepmove = -stepminMove;
         }
     }
 }
@@ -324,13 +336,11 @@ void stepperMoves()
         step2move -= step2sign;
         if (step2move != 0)
         {
-            // stepper2.moveTo(stepper2.currentPosition()+(long)(step2grad*step2sign*10));
-            stepper2.move((long)(step2grad * step2sign*10));
+            stepper2.move((long)(step2grad * step2sign));
         }
         else
         {
-            // stepper2.moveTo(stepper2.currentPosition()+(long)(step2sign*Stepper2Speed * Stepper2Speed / 2 / Stepper2Acc));
-            stepper2.move((long)(step2sign*Stepper2Speed * Stepper2Speed / 2 / Stepper2Acc));
+            stepper2.move(step2sign * stepper2.speed() * stepper2.speed() / 2 / Stepper2Acc);
         }
     }
     if (stepmove != 0)
@@ -342,13 +352,11 @@ void stepperMoves()
         stepmove -= stepsign;
         if (stepmove != 0)
         {
-            // stepper.moveTo(stepper.currentPosition()+(long)(step1mm*stepsign*10));
             stepper.move((long)(step1mm * stepsign));
         }
         else
         {
-            // stepper.moveTo(stepper.currentPosition()+(long)(step2sign*StepperSpeed * StepperSpeed / 2 / StepperAcc));
-            //   stepper.move((long)(step2sign*StepperSpeed * StepperSpeed / 2 / StepperAcc));
+            stepper.move(stepsign * stepper.speed() * stepper.speed() / 2 / StepperAcc);
         }
     }
 }

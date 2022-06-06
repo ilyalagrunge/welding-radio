@@ -9,11 +9,11 @@ void setup()
   Serial.println("START");
 
 #ifdef RECIEVER
-  void SetupReciever();
+  SetupReciever();
 #endif
 
 #ifdef TRANSMITTER
-  void SetupTransmitter();
+  SetupTransmitter();
 #endif
 
   RadioSetup();

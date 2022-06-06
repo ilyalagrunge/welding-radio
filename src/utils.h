@@ -8,7 +8,7 @@
 
 #include "reciever.h"
 
-//#define DEBUG
+#define DEBUG
 //#define BLINKALWAYS
 
 #define PIN_CE 8

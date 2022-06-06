@@ -23,8 +23,8 @@ void LoadPars();
 #define StartBtn 3
 #define LedOut 9
 
-#define step2minMove 10
-#define stepminMove 10
+#define step2minMove 5
+#define stepminMove 5
 
 #define StepperSpeed 3000
 #define StepperAcc 10000
@@ -60,4 +60,5 @@ void LoadPars();
 #define ParAddr 0
 #define ParAddrDelta sizeof(float)
 #define ParCount 11
-#define MinSerialLength 10
+#define MinSerialLength 1
+#define CommandSerialLength 10
