@@ -5,6 +5,7 @@ void ProbeBFunc();
 void ProbeFin();
 void StartBFunc();
 void StopBFunc();
+void StartBSwitch();
 
 void Uroutine(int);
 void WManage();

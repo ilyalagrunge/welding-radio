@@ -61,8 +61,7 @@ void SetupTransmitter()
     ProbeB.attachLongPressStart(ProbeBFunc);
 
     StartB.setPressTicks(BtnPressTicks);
-    StartB.attachLongPressStart(StartBFunc);
-    StartB.attachLongPressStop(StopBFunc);
+    StartB.attachLongPressStart(StartBSwitch);
 
     stepper.setPinsInverted(false, false);
     stepper.setMaxSpeed(StepperSpeed);
@@ -184,18 +183,22 @@ void SerialRoutine()
         }
         else if (a == "RIGHT")
         {
+            stepper2.setMaxSpeed((float)(Stepper2Speed*4));
             step2move = step2minMove;
         }
         else if (a == "LEFT")
         {
+            stepper2.setMaxSpeed((float)(Stepper2Speed*4));
             step2move = -step2minMove;
         }
         else if (a == "UP")
         {
+            stepper.setMaxSpeed(StepperSpeed);
             stepmove = stepminMove;
         }
         else if (a == "DOWN")
         {
+            stepper.setMaxSpeed(StepperSpeed);
             stepmove = -stepminMove;
         }
     }
@@ -388,11 +391,21 @@ void ProbeFin()
 #endif
 }
 
+void StartBSwitch(){
+    if (Started){
+        StopBFunc();
+    }
+    else{
+        StartBFunc();
+    }
+}
+
 void StartBFunc()
 {
     if (ProbeDone)
     {
         stepper2.setCurrentPosition(0);
+        stepper2.setMaxSpeed(Stepper2Speed);
         Utarget = 0;
         UcountAbs = -1;
         UintAbs = 0;
