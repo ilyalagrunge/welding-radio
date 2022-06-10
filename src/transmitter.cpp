@@ -4,7 +4,6 @@
 float UintAbs = 0;
 long UcountAbs = -1;
 float Utarget = 0;
-float dHdU = 0.75;
 float deltaH = 0;
 bool Probe = false;
 bool ProbeDone = false;
@@ -88,6 +87,8 @@ void SetupTransmitter()
     Serial.println(Stepper2WeldStep);
     Serial.print("TigHeight=");
     Serial.println(TigHeight);
+    Serial.print("Utarget:");
+    Serial.println(Utarget);
     Serial.print("WeldPerm=");
     Serial.println(WeldPerm);
     Serial.print("ZPerm=");
@@ -159,6 +160,7 @@ void SerialRoutine()
                 break;
             case 2:
             case 3:
+            case 11:
                 EEPROM.put(ParAddr + i * ParAddrDelta, pars[i].toFloat());
                 break;
             default:
@@ -183,23 +185,35 @@ void SerialRoutine()
         }
         else if (a == "RIGHT")
         {
-            stepper2.setMaxSpeed((float)(Stepper2Speed*4));
+            stepper2.setMaxSpeed(Stepper2Speed*4);
             step2move = step2minMove;
         }
         else if (a == "LEFT")
         {
-            stepper2.setMaxSpeed((float)(Stepper2Speed*4));
+            stepper2.setMaxSpeed(Stepper2Speed*4);
             step2move = -step2minMove;
         }
         else if (a == "UP")
         {
-            stepper.setMaxSpeed(StepperSpeed);
+            stepper.setMaxSpeed(StepperSpeed*4);
             stepmove = stepminMove;
         }
         else if (a == "DOWN")
         {
-            stepper.setMaxSpeed(StepperSpeed);
+            stepper.setMaxSpeed(StepperSpeed*4);
             stepmove = -stepminMove;
+        }
+        else if (a == "UT+")
+        {
+            Utarget+=0.1;
+            Serial.print("Utarget:");
+            Serial.println(Utarget);
+        }
+        else if (a == "UT-")
+        {
+            Utarget-=0.1;
+            Serial.print("Utarget:");
+            Serial.println(Utarget);
         }
     }
 }
@@ -221,9 +235,9 @@ void Uroutine(int Uroute)
             StopBFunc();
             if (ZPerm > 0)
                 ProbeDone = false;
-#ifdef DEBUG
+//#ifdef DEBUG
             Serial.println("KZ!");
-#endif
+//#endif
         }
     }
     else
@@ -241,25 +255,25 @@ void Uroutine(int Uroute)
                 UintAbs = (UintAbs * UcountAbs + UrouteF) / (UcountAbs + 1);
                 UcountAbs++;
             }
-            else if (UcountAbs == UtargetCounts)
+            else if ((UcountAbs == UtargetCounts)&&(Utarget<1))
             {
                 Utarget = UintAbs;
-#ifdef DEBUG
-                Serial.print("Utarget : ");
+//#ifdef DEBUG
+                Serial.print("Utarget:");
                 Serial.println(Utarget);
-#endif
+//#endif
                 UcountAbs++;
             }
 
-            if (Utarget > 0)
+            if((Utarget > 0)&&(UcountAbs>1))
             {
                 if ((UrouteF < (Utarget + UmaxD)) && (UrouteF > (Utarget - UminD)))
                 {
                     deltaH = dHdU * (Utarget - UrouteF);
-#ifdef DEBUG
-                    Serial.print("deltaH : ");
+//#ifdef DEBUG
+                    Serial.print("deltaH:");
                     Serial.println(deltaH);
-#endif
+//#endif
                     if (ZPerm > 0)
                         stepper.moveTo(stepper.currentPosition() + deltaH * step1mm);
                 }
@@ -286,12 +300,12 @@ void WManage()
                     {
                         StopBFunc();
                     }
-#ifdef DEBUG
+//#ifdef DEBUG
                     Serial.print("Steps : ");
                     Serial.println(steps);
                     Serial.print("Path : ");
                     Serial.println(path);
-#endif
+//#endif
                 }
             }
             CoolingCounter--;
@@ -339,7 +353,7 @@ void stepperMoves()
         step2move -= step2sign;
         if (step2move != 0)
         {
-            stepper2.move((long)(step2grad * step2sign));
+            stepper2.move((long)(step2grad * step2sign * 3));
         }
         else
         {
@@ -355,7 +369,7 @@ void stepperMoves()
         stepmove -= stepsign;
         if (stepmove != 0)
         {
-            stepper.move((long)(step1mm * stepsign));
+            stepper.move((long)(step1mm * stepsign * 10));
         }
         else
         {
@@ -368,9 +382,9 @@ void ProbeBFunc()
 {
     if (ZPerm > 0)
     {
-#ifdef DEBUG
+//#ifdef DEBUG
         Serial.println("Probe Start");
-#endif
+//#endif
         Probe = true;
         ProbeDone = false;
         stepper.setMaxSpeed(ProbeSpeed);
@@ -386,9 +400,9 @@ void ProbeFin()
     stepper.setMaxSpeed(StepperSpeed);
     stepper.setCurrentPosition(0);
     stepper.moveTo(TigHeight * step1mm);
-#ifdef DEBUG
+//#ifdef DEBUG
     Serial.println("Probe Finish");
-#endif
+//#endif
 }
 
 void StartBSwitch(){
@@ -406,7 +420,12 @@ void StartBFunc()
     {
         stepper2.setCurrentPosition(0);
         stepper2.setMaxSpeed(Stepper2Speed);
-        Utarget = 0;
+        stepper.setMaxSpeed(StepperSpeed);
+        EEPROM.get(ParAddr + 11 * ParAddrDelta, Utarget);
+        if (Utarget < 1) {Utarget = 0;} else{
+            Serial.print("Utarget:");
+            Serial.println(Utarget);
+        }
         UcountAbs = -1;
         UintAbs = 0;
         path = 0;
@@ -414,23 +433,23 @@ void StartBFunc()
         WaitUcounter = PulseDuration;
         CoolingCounter = 0;
         Started = true;
-#ifdef DEBUG
+//#ifdef DEBUG
         Serial.println("TIG Start");
-#endif
+//#endif
     }
     else
     {
-#ifdef DEBUG
+//#ifdef DEBUG
         Serial.println("NO PROBE - NO START");
-#endif
+//#endif
     }
 }
 
 void StopBFunc()
 {
-#ifdef DEBUG
+//#ifdef DEBUG
     Serial.println("TIG Stop");
-#endif
+//#endif
     Started = false;
     stepper.stop();
     stepper2.stop();
@@ -519,6 +538,11 @@ void LoadPars()
             EEPROM.get(ParAddr + i * ParAddrDelta, Stepper2Speed);
             if (Stepper2Speed < 0)
                 Stepper2Speed = Stepper2Speed_DEFAULT;
+            break;
+        case 11:
+            EEPROM.get(ParAddr + i * ParAddrDelta, Utarget);
+            if (Utarget < 1)
+                Utarget = 0;
             break;
         default:
             break;

@@ -24,13 +24,13 @@ void LoadPars();
 #define StartBtn 3
 #define LedOut 9
 
-#define step2minMove 5
-#define stepminMove 5
+#define step2minMove 3
+#define stepminMove 3
 
-#define StepperSpeed 3000
+#define StepperSpeed 600
 #define StepperAcc 10000
-#define ProbeSpeed 500
-#define step1mm 3200 / 5
+#define ProbeSpeed 120
+#define step1mm 800 / 5
 #define ProbeMoveMM -5
 #define InitMoveMM 0
 
@@ -57,9 +57,11 @@ void LoadPars();
 
 #define UmaxD 1
 #define UminD 2
+//#define dHdU 0.75
+#define dHdU 1.0
 
 #define ParAddr 0
 #define ParAddrDelta sizeof(float)
-#define ParCount 11
+#define ParCount 12
 #define MinSerialLength 1
 #define CommandSerialLength 10
