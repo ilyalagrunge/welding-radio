@@ -11,6 +11,9 @@
 #define DEBUG
 //#define BLINKALWAYS
 
+#define SparkFail 1
+#define Reseted 2
+
 #define PIN_CE 8
 #define PIN_CSN 10
 #define dataRepeat 3

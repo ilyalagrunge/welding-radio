@@ -52,6 +52,7 @@ void Welding()
         if (!Weld && !(WeldCount < WeldWait))
         {
             WeldCount = WeldPulse;
+            RadioSendRepeat(SparkFail);
         }
     }
 }

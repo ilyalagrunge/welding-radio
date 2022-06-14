@@ -21,6 +21,9 @@ void RadioSetup()
     radio.startListening();
 
     RadioTicker.start();
+    #ifdef RECIEVER
+        RadioSendRepeat(Reseted);
+    #endif
 }
 
 void radioLoop()
@@ -59,8 +62,19 @@ void RadioRoutine()
 #ifdef RECIEVER
             TigStart(message);
 #endif
-#ifdef TRANSMITTER      
-            Uroutine(message);
+#ifdef TRANSMITTER
+            switch (message)
+            {
+            case Reseted:
+                Serial.println("Reciever Reseted!");
+                break;
+            case SparkFail:
+                Serial.println("Spark Failure!");
+                break;
+            default:
+                Uroutine(message);
+                break;
+            }
 #endif
         }
     }
