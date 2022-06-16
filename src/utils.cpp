@@ -57,8 +57,6 @@ void RadioRoutine()
         {
             RadioBlockCounter = RadioBlock;
             message = data[i];
-            Serial.print("U=");
-            Serial.println(UconvertFloat(message));
 #ifdef RECIEVER
             TigStart(message);
 #endif
@@ -72,6 +70,8 @@ void RadioRoutine()
                 Serial.println("Spark Failure!");
                 break;
             default:
+                Serial.print("U=");
+                Serial.println(UconvertFloat(message));
                 Uroutine(message);
                 break;
             }
@@ -106,13 +106,15 @@ void RadioSendRepeat(int t)
 {
     int i = 0;
     RadioSend(t);
-    for (i = 0; i < RadioRepeat - 1; i++)
+    for (i = 0; i < RadioRepeat; i++)
     {
         delay(RadioDelay);
         RadioSend(t);
     }
-    Serial.print("Pulse duration : ");
-    Serial.println(t);
+    #ifdef TRANSMITTER
+        Serial.print("Pulse duration : ");
+        Serial.println(t);
+    #endif
 }
 
 float UconvertFloat(int uIn)

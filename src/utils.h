@@ -18,7 +18,7 @@
 #define PIN_CSN 10
 #define dataRepeat 3
 #define RadioT 50
-#define RadioRepeat 4
+#define RadioRepeat 1
 #define RadioDelay 50
 #define RadioBlock 5
 
