@@ -105,11 +105,10 @@ void RadioSend(int Mes)
 void RadioSendRepeat(int t)
 {
     int i = 0;
-    RadioSend(t);
     for (i = 0; i < RadioRepeat; i++)
     {
-        delay(RadioDelay);
         RadioSend(t);
+        if (RadioRepeat>1) delay(RadioDelay);
     }
     #ifdef TRANSMITTER
         Serial.print("Pulse duration : ");

@@ -80,25 +80,25 @@ void IMeasure()
 
     if (UconvertFloat(Uinp) < Uprobe)
     {
-        TigFinish();
-        RadioSendRepeat(Uinp);
+        TigFinish();  //kz
+        RadioSendRepeat(Uinp);  //kz
     }
 
     I = analogRead(Iinput);
     Ir = IconvertFloat(I);
-    if (Ir > ThI)
+    if (Ir > ThImax)
     {
         if (!Weld)
         {
             Weld = true;
-            Serial.println("!!!!!Weld Start");
+            //Serial.println("!!!!!Weld Start");
         }
         UMeasure(Uinp);
     }
-    else if (Weld)
+    else if ((Weld) && (Ir < ThImin))
     {
         Weld = false;
-        Serial.print("!!!!!Weld Finish");
+        //Serial.print("!!!!!Weld Finish");
 
         if ((Ucount == Ufinish) && (Uint > ThU) && (Uint < LimU))
         {
@@ -108,8 +108,8 @@ void IMeasure()
         Umiss = Umissed;
         Ucount = 0;
 #ifdef DEBUG
-        Serial.print("Uint : ");
-        Serial.println(Uint);
+        //Serial.print("Uint : ");
+        //Serial.println(Uint);
 #endif
     }
 }

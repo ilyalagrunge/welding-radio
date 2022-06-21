@@ -7,12 +7,15 @@ float Utarget = 0;
 float deltaH = 0;
 bool Probe = false;
 bool ProbeDone = false;
+bool FinPoint = false;
+bool Move2Point = false;
 bool BlinkState = false;
 bool Started = false;
 int WaitUcounter = 0;
 int CoolingCounter = 0;
 float path = 0;
 int steps = 0;
+float pointPath = 0;
 int PULSE = 0;
 int COOLING = 0;
 int PulseDuration = 0;
@@ -177,11 +180,21 @@ void SerialRoutine()
         }
         else if (a == "START")
         {
-            StartBFunc();
+            StartBFunc(false);
+        }
+        else if (a == "STARP")
+        {
+            StartBFunc(true);
         }
         else if (a == "STOP")
         {
             StopBFunc();
+        }
+        else if (a == "POINT")
+        {
+            FinPoint = true;
+            stepper2.setCurrentPosition(0);
+            Serial.println("Fin Point Set");
         }
         else if (a == "RIGHT")
         {
@@ -293,12 +306,34 @@ void WManage()
             {
                 if (XPerm > 0)
                 {
-                    stepper2.moveTo(stepper2.currentPosition() + (long)(Stepper2WeldStep * step2grad));
-                    steps++;
-                    path = steps * Stepper2WeldStep;
-                    if (!(steps < NPulses))
-                    {
-                        StopBFunc();
+                    if (Move2Point){
+                        if (stepper2.currentPosition()==0){
+                            StopBFunc();
+                        }
+                        else if ( abs(stepper2.currentPosition()) < abs(Stepper2WeldStep * step2grad) ){
+                            stepper2.moveTo(0);
+                            steps++;
+                            path=pointPath / step2grad;
+                        }
+                        else {
+                            if (stepper2.currentPosition()<0){
+                                stepper2.moveTo(stepper2.currentPosition() + (long)(abs(Stepper2WeldStep) * step2grad));
+                            }
+                            else{
+                                stepper2.moveTo(stepper2.currentPosition() - (long)(abs(Stepper2WeldStep) * step2grad));
+                            }
+                            steps++;
+                            path=(pointPath+stepper2.currentPosition())/step2grad;
+                        }
+                    }
+                    else{
+                        stepper2.moveTo(stepper2.currentPosition() + (long)(Stepper2WeldStep * step2grad));
+                        steps++;
+                        path = steps * Stepper2WeldStep;
+                        if (!(steps < NPulses))
+                        {
+                            StopBFunc();
+                        }
                     }
 //#ifdef DEBUG
                     Serial.print("Steps : ");
@@ -353,11 +388,12 @@ void stepperMoves()
         step2move -= step2sign;
         if (step2move != 0)
         {
-            stepper2.move((long)(step2grad * step2sign * 3));
+            stepper2.move((long)(step2grad * step2sign * 10));
         }
         else
         {
-            stepper2.move(step2sign * stepper2.speed() * stepper2.speed() / 2 / Stepper2Acc);
+            //stepper2.move(step2sign * stepper2.speed() * stepper2.speed() / 2 / Stepper2Acc);
+            stepper2.stop();
         }
     }
     if (stepmove != 0)
@@ -373,7 +409,8 @@ void stepperMoves()
         }
         else
         {
-            stepper.move(stepsign * stepper.speed() * stepper.speed() / 2 / StepperAcc);
+            //stepper.move(stepsign * stepper.speed() * stepper.speed() / 2 / StepperAcc);
+            stepper.stop();
         }
     }
 }
@@ -410,39 +447,51 @@ void StartBSwitch(){
         StopBFunc();
     }
     else{
-        StartBFunc();
+        StartBFunc(false);
     }
 }
 
-void StartBFunc()
+void StartBFunc(bool p)
 {
+#ifdef StartNeedsProbe
     if (ProbeDone)
     {
-        stepper2.setCurrentPosition(0);
-        stepper2.setMaxSpeed(Stepper2Speed);
-        stepper.setMaxSpeed(StepperSpeed);
-        EEPROM.get(ParAddr + 11 * ParAddrDelta, Utarget);
-        if (Utarget < 1) {Utarget = 0;} else{
-            Serial.print("Utarget:");
-            Serial.println(Utarget);
+#endif
+        //stepper2.setCurrentPosition(0);
+        if (p && !FinPoint){
+            Serial.println("FINISH POINT NOT SET");
         }
-        UcountAbs = -1;
-        UintAbs = 0;
-        path = 0;
-        steps = 0;
-        WaitUcounter = PulseDuration;
-        CoolingCounter = 0;
-        Started = true;
-//#ifdef DEBUG
-        Serial.println("TIG Start");
-//#endif
+        else{
+            Move2Point = p;
+            pointPath=-stepper2.currentPosition();
+            stepper2.setMaxSpeed(Stepper2Speed);
+            stepper.setMaxSpeed(StepperSpeed);
+            EEPROM.get(ParAddr + 11 * ParAddrDelta, Utarget);
+            if (Utarget < 1) {Utarget = 0;} else{
+                Serial.print("Utarget:");
+                Serial.println(Utarget);
+            }
+            UcountAbs = -1;
+            UintAbs = 0;
+            path = 0;
+            steps = 0;
+            WaitUcounter = PulseDuration;
+            CoolingCounter = 0;
+            Started = true;
+            if (Move2Point){
+                Serial.println("TIG Start to Point");
+            }
+            else{
+                Serial.println("TIG Start");
+            }
+        }
+#ifdef StartNeedsProbe
     }
     else
     {
-//#ifdef DEBUG
         Serial.println("NO PROBE - NO START");
-//#endif
     }
+#endif
 }
 
 void StopBFunc()

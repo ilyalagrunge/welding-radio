@@ -3,7 +3,7 @@
 
 void ProbeBFunc();
 void ProbeFin();
-void StartBFunc();
+void StartBFunc(bool);
 void StopBFunc();
 void StartBSwitch();
 

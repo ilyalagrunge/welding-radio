@@ -10,6 +10,7 @@
 
 #define DEBUG
 //#define BLINKALWAYS
+//#define StartNeedsProbe
 
 #define SparkFail 1
 #define Reseted 2
@@ -24,7 +25,8 @@
 
 #define ThU 0.2
 #define LimU 40
-#define ThI 50
+#define ThImin 30
+#define ThImax 50
 #define kU 20.48
 #define Uoffset 0.93
 #define kI 2.048
