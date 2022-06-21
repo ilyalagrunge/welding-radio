@@ -20,9 +20,12 @@ void LoadPars();
 #define DirOut 5
 #define StepOut2 6
 #define DirOut2 7
+#define StepOut3 14
+#define DirOut3 15
 #define ProbeBtn 2
 #define StartBtn 3
 #define LedOut 9
+#define ReleOut 17
 
 #define step2minMove 3
 #define stepminMove 3

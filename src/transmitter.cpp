@@ -19,12 +19,15 @@ float pointPath = 0;
 int PULSE = 0;
 int COOLING = 0;
 int PulseDuration = 0;
+int RelePulseDuration = 0;
 int CoolingDuration = 0;
 int RotatinDuration = 0;
 int Stepper2Speed = 0;
 int Stepper2Acc = 0;
 int step2grad = 0;
+float StepperWeldStep = 0;
 float Stepper2WeldStep = 0;
+float Stepper3WeldStep = 0;
 float TigHeight = 0;
 int WeldPerm = 0;
 int ZPerm = 0;
@@ -33,12 +36,14 @@ int NPulses = 0;
 int ROTATING = 0;
 int killme = 0;
 int step2move = 0;
+int step3move = 0;
 int stepmove = 0;
 
 String SerialString = "";
 
 AccelStepper stepper(AccelStepper::DRIVER, StepOut, DirOut);
 AccelStepper stepper2(AccelStepper::DRIVER, StepOut2, DirOut2);
+AccelStepper stepper3(AccelStepper::DRIVER, StepOut3, DirOut3);
 OneButton ProbeB(ProbeBtn, false);
 OneButton StartB(StartBtn, false);
 Ticker tickerBlink(Blinker, BlinkMeasure, 0, MILLIS);
@@ -54,10 +59,14 @@ void SetupTransmitter()
     pinMode(DirOut, OUTPUT);
     pinMode(StepOut2, OUTPUT);
     pinMode(DirOut2, OUTPUT);
+    pinMode(StepOut3, OUTPUT);
+    pinMode(DirOut3, OUTPUT);
     pinMode(ProbeBtn, INPUT);
     pinMode(StartBtn, INPUT);
     pinMode(LedOut, OUTPUT);
     digitalWrite(LedOut, LOW);
+    pinMode(ReleOut, OUTPUT);
+    digitalWrite(ReleOut, LOW);
 
     ProbeB.setPressTicks(BtnPressTicks);
     ProbeB.attachLongPressStart(ProbeBFunc);
@@ -75,11 +84,18 @@ void SetupTransmitter()
     stepper2.setAcceleration(Stepper2Acc);
     stepper2.setCurrentPosition(0);
 
+
+    stepper3.setPinsInverted(false, false);
+    stepper3.setMaxSpeed(Stepper2Speed);
+    stepper3.setAcceleration(Stepper2Acc);
+    stepper3.setCurrentPosition(0);
+
     tickerBlink.start();
     tickerWManager.start();
 
     stepper.move(InitMoveMM * step1mm);
     stepper2.move(InitMoveMM2 * step2grad);
+    stepper3.move(InitMoveMM2 * step2grad);
 
     Serial.println("TRANSMITTER");
     Serial.print("Pulse=");
@@ -118,6 +134,7 @@ void transmitterLoop()
     StartB.tick();
     stepper.run();
     stepper2.run();
+    stepper3.run();
 }
 
 void SerialRoutine()
@@ -194,6 +211,7 @@ void SerialRoutine()
         {
             FinPoint = true;
             stepper2.setCurrentPosition(0);
+            stepper3.setCurrentPosition(0);
             Serial.println("Fin Point Set");
         }
         else if (a == "RIGHT")
@@ -205,6 +223,16 @@ void SerialRoutine()
         {
             stepper2.setMaxSpeed(Stepper2Speed*4);
             step2move = -step2minMove;
+        }
+        else if (a == "Y+")
+        {
+            stepper3.setMaxSpeed(Stepper2Speed*4);
+            step3move = step2minMove;
+        }
+        else if (a == "Y-")
+        {
+            stepper3.setMaxSpeed(Stepper2Speed*4);
+            step3move = -step2minMove;
         }
         else if (a == "UP")
         {
@@ -312,6 +340,7 @@ void WManage()
                         }
                         else if ( abs(stepper2.currentPosition()) < abs(Stepper2WeldStep * step2grad) ){
                             stepper2.moveTo(0);
+                            stepper3.moveTo(0);
                             steps++;
                             path=pointPath / step2grad;
                         }
@@ -322,8 +351,14 @@ void WManage()
                             else{
                                 stepper2.moveTo(stepper2.currentPosition() - (long)(abs(Stepper2WeldStep) * step2grad));
                             }
+                            if (stepper3.currentPosition()<0){
+                                stepper3.moveTo(stepper3.currentPosition() + (long)(abs(Stepper3WeldStep) * step2grad));
+                            }
+                            else{
+                                stepper3.moveTo(stepper3.currentPosition() - (long)(abs(Stepper3WeldStep) * step2grad));
+                            }
                             steps++;
-                            path=(pointPath+stepper2.currentPosition())/step2grad;
+                            path=(pointPath-  (float) ( sqrt( pow(stepper2.currentPosition(),2) + (stepper3.currentPosition(),2) ) )  )/step2grad;
                         }
                     }
                     else{
@@ -359,12 +394,21 @@ void WManage()
                 }
                 else
                 {
-                    CoolingCounter = CoolingDuration;
+                    digitalWrite(ReleOut, HIGH);
+                    //CoolingCounter = CoolingDuration;
+                    WaitUcounter = RelePulseDuration;
                 }
             }
             if (WaitUcounter == 0)
             {
-                WaitUcounter = PulseDuration + 1;
+                if (WeldPerm > 0){
+                    WaitUcounter = PulseDuration + 1;
+                }
+                else{
+                    digitalWrite(ReleOut, LOW);
+                    WaitUcounter = 1;
+                    CoolingCounter = CoolingDuration;
+                }
             }
             WaitUcounter--;
         }
@@ -379,6 +423,24 @@ void stepperMoves()
 {
     int stepsign = 0;
     int step2sign = 0;
+    int step3sign = 0;
+    if (step3move != 0)
+    {
+        if (step3move > 0)
+            step3sign = 1;
+        else
+            step3sign = -1;
+        step3move -= step3sign;
+        if (step3move != 0)
+        {
+            stepper3.move((long)(step2grad * step3sign * 10));
+        }
+        else
+        {
+            //stepper3.move(step3sign * stepper3.speed() * stepper3.speed() / 2 / Stepper2Acc);
+            stepper3.stop();
+        }
+    }
     if (step2move != 0)
     {
         if (step2move > 0)
@@ -463,13 +525,29 @@ void StartBFunc(bool p)
         }
         else{
             Move2Point = p;
-            pointPath=-stepper2.currentPosition();
-            stepper2.setMaxSpeed(Stepper2Speed);
-            stepper.setMaxSpeed(StepperSpeed);
             EEPROM.get(ParAddr + 11 * ParAddrDelta, Utarget);
             if (Utarget < 1) {Utarget = 0;} else{
                 Serial.print("Utarget:");
                 Serial.println(Utarget);
+            }
+            pointPath=(float) ( sqrt( pow(stepper2.currentPosition(),2) + (stepper3.currentPosition(),2) ) );
+            stepper.setMaxSpeed(StepperSpeed);
+            if (Move2Point){
+                float kp = abs(stepper2.currentPosition()/stepper3.currentPosition());
+                float ks = kp / (float( sqrt( pow(kp,2) + 1 ) ));
+                stepper2.setMaxSpeed(Stepper2Speed * ks);
+                stepper2.setAcceleration(Stepper2Acc * ks);
+                stepper3.setMaxSpeed(Stepper2Speed * ks / kp);
+                stepper3.setAcceleration(Stepper2Acc * ks / kp);
+                Stepper2WeldStep = StepperWeldStep * ks;
+                Stepper3WeldStep = Stepper2WeldStep / kp;
+                Serial.println("TIG Start to Point");
+            }
+            else{
+                stepper2.setMaxSpeed(Stepper2Speed);
+                stepper2.setAcceleration(Stepper2Acc);
+                Stepper2WeldStep=StepperWeldStep;
+                Serial.println("TIG Start");
             }
             UcountAbs = -1;
             UintAbs = 0;
@@ -478,12 +556,6 @@ void StartBFunc(bool p)
             WaitUcounter = PulseDuration;
             CoolingCounter = 0;
             Started = true;
-            if (Move2Point){
-                Serial.println("TIG Start to Point");
-            }
-            else{
-                Serial.println("TIG Start");
-            }
         }
 #ifdef StartNeedsProbe
     }
@@ -500,8 +572,10 @@ void StopBFunc()
     Serial.println("TIG Stop");
 //#endif
     Started = false;
+    digitalWrite(ReleOut, LOW);
     stepper.stop();
     stepper2.stop();
+    stepper3.stop();
 }
 
 void Blinker()
@@ -547,6 +621,7 @@ void LoadPars()
             break;
         case 2:
             EEPROM.get(ParAddr + i * ParAddrDelta, Stepper2WeldStep);
+            StepperWeldStep=Stepper2WeldStep;
             break;
         case 3:
             EEPROM.get(ParAddr + i * ParAddrDelta, TigHeight);
@@ -602,6 +677,7 @@ void LoadPars()
     ROTATING = int((float)Stepper2Speed / (float)Stepper2Acc * 1000 + (float)step2grad * (float)(abs(Stepper2WeldStep)) / (float)Stepper2Speed * 1000) + 100;
     CoolingDuration = (int)((COOLING + ROTATING) / WManageT);
     RotatinDuration = (int)(ROTATING / WManageT);
+    RelePulseDuration = (int)((PULSE) / WManageT);
 
     if (WeldPerm < 1)
         ZPerm = 0;

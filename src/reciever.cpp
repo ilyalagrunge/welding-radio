@@ -16,6 +16,8 @@ Ticker ticker1(IMeasure, TMeasure, 0, MILLIS);
 void SetupReciever()
 {
     pinMode(TigSwitch, OUTPUT);
+    pinMode(Uinput, INPUT);
+    pinMode(Iinput, INPUT);
     digitalWrite(TigSwitch, LOW);
     ticker1.start();
 
