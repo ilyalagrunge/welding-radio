@@ -15,6 +15,9 @@ void SetupTransmitter();
 void transmitterLoop();
 void Blinker();
 void LoadPars();
+void SendCoords();
+void TransmitCoords();
+void TransmitCoordsRoutine();
 
 #define StepOut 4
 #define DirOut 5
@@ -33,7 +36,7 @@ void LoadPars();
 #define StepperSpeed 600
 #define StepperAcc 10000
 #define ProbeSpeed 120
-#define step1mm 800 / 5
+#define step1mm 200 //    800 / 4 TR
 #define ProbeMoveMM -5
 #define InitMoveMM 0
 
@@ -68,3 +71,5 @@ void LoadPars();
 #define ParCount 12
 #define MinSerialLength 1
 #define CommandSerialLength 10
+
+#define TransmitCoordsCounterMax 10

@@ -38,6 +38,7 @@ int killme = 0;
 int step2move = 0;
 int step3move = 0;
 int stepmove = 0;
+int TransmitCoordsCounter=0;
 
 String SerialString = "";
 
@@ -124,6 +125,7 @@ void SetupTransmitter()
     Serial.println(Stepper2Speed);
     Serial.print("info:step move time=");
     Serial.println(ROTATING);
+    SendCoords();
 }
 
 void transmitterLoop()
@@ -213,6 +215,7 @@ void SerialRoutine()
             stepper2.setCurrentPosition(0);
             stepper3.setCurrentPosition(0);
             Serial.println("Fin Point Set");
+            SendCoords();
         }
         else if (a == "RIGHT")
         {
@@ -226,13 +229,17 @@ void SerialRoutine()
         }
         else if (a == "Y+")
         {
-            stepper3.setMaxSpeed(Stepper2Speed*4);
-            step3move = step2minMove;
+            if (XPerm > 0){
+                stepper3.setMaxSpeed(Stepper2Speed*4);
+                step3move = step2minMove;
+            }
         }
         else if (a == "Y-")
         {
-            stepper3.setMaxSpeed(Stepper2Speed*4);
-            step3move = -step2minMove;
+            if (XPerm > 0){
+                stepper3.setMaxSpeed(Stepper2Speed*4);
+                step3move = -step2minMove;
+            }
         }
         else if (a == "UP")
         {
@@ -242,6 +249,40 @@ void SerialRoutine()
         else if (a == "DOWN")
         {
             stepper.setMaxSpeed(StepperSpeed*4);
+            stepmove = -stepminMove;
+        }
+        else if (a == "RIGHTS")
+        {
+            stepper2.setMaxSpeed(Stepper2Speed/4);
+            step2move = step2minMove;
+        }
+        else if (a == "LEFTS")
+        {
+            stepper2.setMaxSpeed(Stepper2Speed/4);
+            step2move = -step2minMove;
+        }
+        else if (a == "Y+S")
+        {
+            if (XPerm > 0){
+                stepper3.setMaxSpeed(Stepper2Speed/4);
+                step3move = step2minMove;
+            }
+        }
+        else if (a == "Y-S")
+        {
+            if (XPerm > 0){
+                stepper3.setMaxSpeed(Stepper2Speed/4);
+                step3move = -step2minMove;
+            }
+        }
+        else if (a == "UPS")
+        {
+            stepper.setMaxSpeed(StepperSpeed/4);
+            stepmove = stepminMove;
+        }
+        else if (a == "DOWNS")
+        {
+            stepper.setMaxSpeed(StepperSpeed/4);
             stepmove = -stepminMove;
         }
         else if (a == "UT+")
@@ -326,57 +367,56 @@ void Uroutine(int Uroute)
 void WManage()
 {
     SerialRoutine();
+    TransmitCoordsRoutine();
     if (Started)
     {
         if (CoolingCounter > 0)
         {
             if (CoolingCounter == RotatinDuration)
             {
-                if (XPerm > 0)
-                {
-                    if (Move2Point){
-                        if (stepper2.currentPosition()==0){
-                            StopBFunc();
-                        }
-                        else if ( abs(stepper2.currentPosition()) < abs(Stepper2WeldStep * step2grad) ){
-                            stepper2.moveTo(0);
-                            stepper3.moveTo(0);
-                            steps++;
-                            path=pointPath / step2grad;
-                        }
-                        else {
-                            if (stepper2.currentPosition()<0){
-                                stepper2.moveTo(stepper2.currentPosition() + (long)(abs(Stepper2WeldStep) * step2grad));
-                            }
-                            else{
-                                stepper2.moveTo(stepper2.currentPosition() - (long)(abs(Stepper2WeldStep) * step2grad));
-                            }
-                            if (stepper3.currentPosition()<0){
-                                stepper3.moveTo(stepper3.currentPosition() + (long)(abs(Stepper3WeldStep) * step2grad));
-                            }
-                            else{
-                                stepper3.moveTo(stepper3.currentPosition() - (long)(abs(Stepper3WeldStep) * step2grad));
-                            }
-                            steps++;
-                            path=(pointPath-  (float) ( sqrt( pow(stepper2.currentPosition(),2) + (stepper3.currentPosition(),2) ) )  )/step2grad;
-                        }
+                if (Move2Point){
+                    if (stepper2.currentPosition()==0){
+                        StopBFunc();
                     }
-                    else{
-                        stepper2.moveTo(stepper2.currentPosition() + (long)(Stepper2WeldStep * step2grad));
+                    else if ( abs(stepper2.currentPosition()) < abs(Stepper2WeldStep * step2grad) ){
+                        stepper2.moveTo(0);
+                        stepper3.moveTo(0);
                         steps++;
-                        path = steps * Stepper2WeldStep;
-                        if (!(steps < NPulses))
-                        {
-                            StopBFunc();
-                        }
+                        path=pointPath / step2grad;
                     }
-//#ifdef DEBUG
-                    Serial.print("Steps : ");
-                    Serial.println(steps);
-                    Serial.print("Path : ");
-                    Serial.println(path);
-//#endif
+                    else {
+                        if (stepper2.currentPosition()<0){
+                            stepper2.moveTo(stepper2.currentPosition() + (long)(abs(Stepper2WeldStep) * step2grad));
+                        }
+                        else{
+                            stepper2.moveTo(stepper2.currentPosition() - (long)(abs(Stepper2WeldStep) * step2grad));
+                        }
+                        if (stepper3.currentPosition()<0){
+                            stepper3.moveTo(stepper3.currentPosition() + (long)(abs(Stepper3WeldStep) * step2grad));
+                        }
+                        else{
+                            stepper3.moveTo(stepper3.currentPosition() - (long)(abs(Stepper3WeldStep) * step2grad));
+                        }
+                        steps++;
+                        path=(pointPath-  (float) ( sqrt( pow(stepper2.currentPosition(),2) + pow(stepper3.currentPosition(),2) ) )  )/step2grad;
+                    }
                 }
+                else{
+                    stepper2.moveTo(stepper2.currentPosition() + (long)(Stepper2WeldStep * step2grad));
+                    steps++;
+                    path = steps * Stepper2WeldStep;
+                    if (!(steps < NPulses))
+                    {
+                        StopBFunc();
+                    }
+                }
+//#ifdef DEBUG
+                Serial.print("Steps : ");
+                Serial.println(steps);
+                Serial.print("Path : ");
+                Serial.println(path);
+                SendCoords();
+//#endif    
             }
             CoolingCounter--;
             if (CoolingCounter == 0)
@@ -439,6 +479,7 @@ void stepperMoves()
         {
             //stepper3.move(step3sign * stepper3.speed() * stepper3.speed() / 2 / Stepper2Acc);
             stepper3.stop();
+            SendCoords();
         }
     }
     if (step2move != 0)
@@ -456,6 +497,7 @@ void stepperMoves()
         {
             //stepper2.move(step2sign * stepper2.speed() * stepper2.speed() / 2 / Stepper2Acc);
             stepper2.stop();
+            SendCoords();
         }
     }
     if (stepmove != 0)
@@ -473,6 +515,7 @@ void stepperMoves()
         {
             //stepper.move(stepsign * stepper.speed() * stepper.speed() / 2 / StepperAcc);
             stepper.stop();
+            SendCoords();
         }
     }
 }
@@ -530,15 +573,15 @@ void StartBFunc(bool p)
                 Serial.print("Utarget:");
                 Serial.println(Utarget);
             }
-            pointPath=(float) ( sqrt( pow(stepper2.currentPosition(),2) + (stepper3.currentPosition(),2) ) );
+            pointPath=(float) ( sqrt( pow(stepper2.currentPosition(),2) + pow(stepper3.currentPosition(),2) ) );
             stepper.setMaxSpeed(StepperSpeed);
             if (Move2Point){
-                float kp = abs(stepper2.currentPosition()/stepper3.currentPosition());
-                float ks = kp / (float( sqrt( pow(kp,2) + 1 ) ));
-                stepper2.setMaxSpeed(Stepper2Speed * ks);
-                stepper2.setAcceleration(Stepper2Acc * ks);
-                stepper3.setMaxSpeed(Stepper2Speed * ks / kp);
-                stepper3.setAcceleration(Stepper2Acc * ks / kp);
+                float kp = abs((float)stepper2.currentPosition()/(float)stepper3.currentPosition());
+                float ks = kp / ((float)( sqrt( pow(kp,2) + 1 ) ));
+                stepper2.setMaxSpeed((float)Stepper2Speed * ks);
+                stepper2.setAcceleration((float)Stepper2Acc * ks);
+                stepper3.setMaxSpeed((float)Stepper2Speed * ks / kp);
+                stepper3.setAcceleration((float)Stepper2Acc * ks / kp);
                 Stepper2WeldStep = StepperWeldStep * ks;
                 Stepper3WeldStep = Stepper2WeldStep / kp;
                 Serial.println("TIG Start to Point");
@@ -576,6 +619,7 @@ void StopBFunc()
     stepper.stop();
     stepper2.stop();
     stepper3.stop();
+    SendCoords();
 }
 
 void Blinker()
@@ -683,4 +727,26 @@ void LoadPars()
         ZPerm = 0;
     if (ZPerm < 1)
         ProbeDone = true;
+}
+
+void SendCoords(){
+    TransmitCoordsCounter=TransmitCoordsCounterMax;
+}
+
+void TransmitCoords(){
+    Serial.print("X:");
+    Serial.println((float)stepper3.currentPosition()/(float)step2grad,1);
+    Serial.print("Y:");
+    Serial.println((float)stepper2.currentPosition()/(float)step2grad,1);
+    Serial.print("Z:");
+    Serial.println((float)stepper.currentPosition()/(float)step1mm,1);
+}
+
+void TransmitCoordsRoutine(){
+    if (TransmitCoordsCounter>0){
+        TransmitCoordsCounter--;
+        if (TransmitCoordsCounter==0){
+            TransmitCoords();
+        }
+    }
 }
