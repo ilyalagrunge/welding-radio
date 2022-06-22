@@ -18,6 +18,7 @@ void LoadPars();
 void SendCoords();
 void TransmitCoords();
 void TransmitCoordsRoutine();
+void Timings(float, int);
 
 #define StepOut 4
 #define DirOut 5
