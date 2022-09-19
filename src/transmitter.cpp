@@ -46,6 +46,9 @@ int step2move = 0;
 int step3move = 0;
 int stepmove = 0;
 int TransmitCoordsCounter=0;
+float initX=0;
+float initY=0;
+float initZ=0;
 
 String SerialString = "";
 
@@ -85,18 +88,18 @@ void SetupTransmitter()
     stepper.setPinsInverted(false, false);
     stepper.setMaxSpeed(StepperSpeed);
     stepper.setAcceleration(StepperAcc);
-    stepper.setCurrentPosition(0);
+    stepper.setCurrentPosition(initZ);
 
     stepper2.setPinsInverted(false, false);
     stepper2.setMaxSpeed(Stepper2Speed);
     stepper2.setAcceleration(Stepper2Acc);
-    stepper2.setCurrentPosition(0);
+    stepper2.setCurrentPosition(initY);
 
 
     stepper3.setPinsInverted(false, false);
     stepper3.setMaxSpeed(Stepper2Speed);
     stepper3.setAcceleration(Stepper2Acc);
-    stepper3.setCurrentPosition(0);
+    stepper3.setCurrentPosition(initX);
 
     tickerBlink.start();
     tickerWManager.start();
@@ -342,6 +345,13 @@ void SerialRoutine()
             Utarget-=0.1;
             Serial.print("Utarget:");
             Serial.println(Utarget);
+        }
+        else if (a == "SAVE")
+        {
+            EEPROM.put(CoordAddr + 0 * ParAddrDelta, (float)stepper3.currentPosition());
+            EEPROM.put(CoordAddr + 1 * ParAddrDelta, (float)stepper2.currentPosition());
+            EEPROM.put(CoordAddr + 2 * ParAddrDelta, (float)stepper.currentPosition());
+            Serial.println("Coords Saved:");
         }
     }
 }
@@ -611,7 +621,11 @@ void StartBFunc(bool p)
     {
 #endif
         //stepper2.setCurrentPosition(0);
+        #ifdef FinPointProtection
         if (p && !FinPoint){
+        #else
+        if (0){
+        #endif
             Serial.println("FINISH POINT NOT SET");
         }
         else{
@@ -813,6 +827,9 @@ void LoadPars()
         default:
             break;
         }
+        EEPROM.get(CoordAddr + 0 * ParAddrDelta, initX);
+        EEPROM.get(CoordAddr + 1 * ParAddrDelta, initY);
+        EEPROM.get(CoordAddr + 2 * ParAddrDelta, initZ);
     }
 
     Timings(Stepper2Acc, Stepper2Speed);

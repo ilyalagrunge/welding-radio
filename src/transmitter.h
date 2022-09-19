@@ -20,6 +20,8 @@ void TransmitCoords();
 void TransmitCoordsRoutine();
 void Timings(float, int);
 
+//#define FinPointProtection
+
 #define StepOut 4
 #define DirOut 5
 #define StepOut2 6
@@ -68,6 +70,7 @@ void Timings(float, int);
 #define dHdU 1.0
 
 #define ParAddr 0
+#define CoordAddr 200
 #define ParAddrDelta sizeof(float)
 #define ParCount 12
 #define MinSerialLength 1
