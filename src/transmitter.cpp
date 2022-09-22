@@ -62,7 +62,7 @@ Ticker tickerWManager(WManage, WManageT, 0, MILLIS);
 
 void (*resetFunc)(void) = 0;
 
-void SetupTransmitter()
+int SetupTransmitter()
 {
     LoadPars();
 
@@ -136,6 +136,7 @@ void SetupTransmitter()
     Serial.print("info:step move time=");
     Serial.println(ROTATING);
     TransmitCoords();
+    return(WeldPerm);
 }
 
 void transmitterLoop()
@@ -358,7 +359,7 @@ void SerialRoutine()
 
 void Uroutine(int Uroute)
 {
-    if (!WeldPerm)
+    if (WeldPerm==0)
         return;
     float UrouteF;
     UrouteF = UconvertFloat(Uroute);
@@ -643,6 +644,7 @@ void StartBFunc(bool p)
                 float a=zcoord / pointPath;
                 float a2=coord2 / pointPath;
                 float a3=coord3 / pointPath;
+                //float tPath=0;
                 StepperZPointSpeed = (float)Stepper2Speed * a / (float) step2grad * step1mm;
                 StepperZPointAcc = (float)Stepper2Acc * a / (float) step2grad * step1mm;
                 stepper.setMaxSpeed(StepperZPointSpeed);
@@ -651,14 +653,56 @@ void StartBFunc(bool p)
                 stepper2.setAcceleration((float)Stepper2Acc * a2);
                 stepper3.setMaxSpeed((float)Stepper2Speed * a3);
                 stepper3.setAcceleration((float)Stepper2Acc * a3);
-                StepperZWeldStep = StepperWeldStep * a;
-                Stepper2WeldStep = StepperWeldStep * a2;
-                Stepper3WeldStep = StepperWeldStep * a3;
-                float AbsWeldStep=(float) ( sqrt( pow(Stepper2WeldStep,2) + pow(Stepper3WeldStep,2) + pow(StepperZWeldStep,2)) );
-                lastStepN=(int) (pointPath/AbsWeldStep)+1;
-                Stepper2LastStep= coord2 - Stepper2WeldStep * (lastStepN-1);
-                Stepper3LastStep= coord3 - Stepper3WeldStep * (lastStepN-1);
-                StepperZLastStep= zcoord - StepperZWeldStep * (lastStepN-1);
+                if (StepperWeldStep==0){
+                    StepperZWeldStep = zcoord;
+                    Stepper2WeldStep = coord2;
+                    Stepper3WeldStep = coord3;
+                }
+                else{
+                    StepperZWeldStep = StepperWeldStep * a;
+                    Stepper2WeldStep = StepperWeldStep * a2;
+                    Stepper3WeldStep = StepperWeldStep * a3;
+                }
+                
+                if(StepperWeldStep==0){
+                    lastStepN=1;
+                    StepperZLastStep=StepperZWeldStep;
+                    Stepper2LastStep=Stepper2WeldStep;
+                    Stepper3LastStep=Stepper3WeldStep;
+                }
+                else{
+                    float AbsWeldStep=(float) ( sqrt( pow(Stepper2WeldStep,2) + pow(Stepper3WeldStep,2) + pow(StepperZWeldStep,2)) );
+                    lastStepN=(int) (pointPath/AbsWeldStep)+1;
+                    Stepper2LastStep= coord2 - Stepper2WeldStep * (lastStepN-1);
+                    Stepper3LastStep= coord3 - Stepper3WeldStep * (lastStepN-1);
+                    StepperZLastStep= zcoord - StepperZWeldStep * (lastStepN-1);
+                }
+
+                /*if (Stepper2WeldStep>0){
+                    tPath=(float) (Stepper2WeldStep*step2grad/stepper2.maxSpeed());
+                }
+                else if (Stepper3WeldStep>0){
+                    tPath=(float) (Stepper3WeldStep*step2grad/stepper3.maxSpeed());
+                }
+                
+                stepper2.setMaxSpeed((float)(Stepper2WeldStep*step2grad/tPath));
+                stepper3.setMaxSpeed((float)(Stepper3WeldStep*step2grad/tPath));
+                */
+
+                Serial.print("StepperZWeldStep=");
+                Serial.println(StepperZWeldStep);
+                Serial.print("Stepper2WeldStep*step2grad=");
+                Serial.println(Stepper2WeldStep*step2grad);
+                Serial.print("Stepper3WeldStep*step2grad=");
+                Serial.println(Stepper3WeldStep*step2grad);
+
+                Serial.print("stepper.maxSpeed=");
+                Serial.println(stepper.maxSpeed());
+                Serial.print("stepper2.maxSpeed=");
+                Serial.println(stepper2.maxSpeed());
+                Serial.print("stepper3.maxSpeed=");
+                Serial.println(stepper3.maxSpeed());
+
                 if (stepper.currentPosition()>0) {
                     StepperZWeldStep=-StepperZWeldStep;
                     StepperZLastStep=-StepperZLastStep;
@@ -671,6 +715,7 @@ void StartBFunc(bool p)
                     Stepper3WeldStep=-Stepper3WeldStep;
                     Stepper3LastStep=-Stepper3LastStep;
                 }
+
                 Timings((float)Stepper2Acc * a2, Stepper2Speed * a2);
                 /*Serial.print("LasststepN=");
                 Serial.println(lastStepN);
@@ -834,7 +879,7 @@ void LoadPars()
 
     Timings(Stepper2Acc, Stepper2Speed);
 
-    if (WeldPerm < 1)
+    if (!(WeldPerm == 1))
         ZPerm = 0;
     if (ZPerm < 1)
         ProbeDone = true;

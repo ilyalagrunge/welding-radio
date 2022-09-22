@@ -36,7 +36,7 @@
 void RadioRoutine();
 void RadioSend(int);
 void RadioSendRepeat(int);
-void RadioSetup();
+void RadioSetup(int);
 void radioLoop();
 
 float UconvertFloat(int);

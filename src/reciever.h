@@ -3,8 +3,10 @@ void IMeasure();
 void Welding();
 void TigStart(long);
 void TigFinish();
-void SetupReciever();
+int SetupReciever();
 void recieverLoop();
+
+//#define RecieverEWM
 
 #define Uinput A0
 #define Iinput A1

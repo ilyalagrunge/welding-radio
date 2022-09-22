@@ -1,10 +1,10 @@
 #include "utils.h"
 
 #ifdef RECIEVER
-const byte addresses[][6] = {"00002", "00001"};
+const byte addresses[][6] = {"00002", "00003", "00001"};
 #endif
 #ifdef TRANSMITTER
-const byte addresses[][6] = {"00001", "00002"};
+const byte addresses[][6] = {"00001", "00010", "00002", "00003"};
 #endif
 
 int RadioBlockCounter = 0;
@@ -12,11 +12,17 @@ int RadioBlockCounter = 0;
 RF24 radio(PIN_CE, PIN_CSN);
 Ticker RadioTicker(RadioRoutine, RadioT, 0, MILLIS);
 
-void RadioSetup()
+void RadioSetup(int WRadioType)
 {
     radio.begin();
-    radio.openWritingPipe(addresses[1]);
-    radio.openReadingPipe(1, addresses[0]);
+    #ifdef RECIEVER
+        radio.openWritingPipe(addresses[2]);
+        radio.openReadingPipe(1, addresses[WRadioType-1]);
+        #endif
+    #ifdef TRANSMITTER
+        radio.openWritingPipe(addresses[1 + WRadioType]);
+        radio.openReadingPipe(1, addresses[0]);
+    #endif
     radio.setPALevel(RF24_PA_HIGH);
     radio.startListening();
 

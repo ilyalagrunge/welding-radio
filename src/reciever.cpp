@@ -13,15 +13,22 @@ long WeldPulse = (long)(WeldWait + 200 / TMeasure);
 
 Ticker ticker1(IMeasure, TMeasure, 0, MILLIS);
 
-void SetupReciever()
+int SetupReciever()
 {
     pinMode(TigSwitch, OUTPUT);
-    pinMode(Uinput, INPUT);
-    pinMode(Iinput, INPUT);
+    #ifdef RecieverEWM
+        pinMode(Uinput, INPUT);
+        pinMode(Iinput, INPUT);
+    #endif
     digitalWrite(TigSwitch, LOW);
     ticker1.start();
 
     Serial.println("RECIEVER");
+    #ifdef RecieverEWM
+        return(1);
+    #else
+        return(2);
+    #endif
 }
 
 void recieverLoop()
@@ -36,12 +43,19 @@ void Welding()
         if (WeldCount == 0)
         {
             digitalWrite(TigSwitch, HIGH);
+            #ifndef RecieverEWM
+                Weld = true;
+            #endif
         }
         if (WeldCount == WeldPulse)
         {
             digitalWrite(TigSwitch, LOW);
             PulseStarted = false;
             WeldCount = -1;
+            #ifndef RecieverEWM
+                Weld = false;
+                RadioSendRepeat(UconvertInt(20));
+            #endif
         }
 
         WeldCount++;
@@ -76,7 +90,7 @@ void TigFinish()
 void IMeasure()
 {
     Welding();
-
+    #ifdef RecieverEWM
     int Uinp = 0;
     Uinp = analogRead(Uinput);
 
@@ -114,6 +128,7 @@ void IMeasure()
         //Serial.println(Uint);
 #endif
     }
+    #endif
 }
 
 void UMeasure(int AnU)

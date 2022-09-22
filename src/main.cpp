@@ -2,6 +2,7 @@
 
 void setup()
 {
+  int WeldRadioType=0;
   Serial.begin(9600);
   Serial.setTimeout(100);
   while (!Serial)
@@ -9,14 +10,14 @@ void setup()
   Serial.println("START");
 
 #ifdef RECIEVER
-  SetupReciever();
+  WeldRadioType=SetupReciever();
 #endif
 
 #ifdef TRANSMITTER
-  SetupTransmitter();
+  WeldRadioType=SetupTransmitter();
 #endif
 
-  RadioSetup();
+  RadioSetup(WeldRadioType);
 }
 
 void loop()

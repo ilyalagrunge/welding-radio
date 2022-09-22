@@ -11,7 +11,7 @@ void Uroutine(int);
 void WManage();
 void SerialRoutine();
 void stepperMoves();
-void SetupTransmitter();
+int SetupTransmitter();
 void transmitterLoop();
 void Blinker();
 void LoadPars();
