@@ -11,6 +11,7 @@ bool FinPoint = false;
 bool Move2Point = false;
 bool BlinkState = false;
 bool Started = false;
+bool longDistance = false;
 int WaitUcounter = 0;
 int CoolingCounter = 0;
 float path = 0;
@@ -60,6 +61,8 @@ OneButton StartB(StartBtn, false);
 Ticker tickerBlink(Blinker, BlinkMeasure, 0, MILLIS);
 Ticker tickerWManager(WManage, WManageT, 0, MILLIS);
 
+MultiStepper steppers;
+
 void (*resetFunc)(void) = 0;
 
 int SetupTransmitter()
@@ -101,6 +104,10 @@ int SetupTransmitter()
     stepper3.setAcceleration(Stepper2Acc);
     stepper3.setCurrentPosition(initX);
 
+    steppers.addStepper(stepper);
+    steppers.addStepper(stepper2);
+    steppers.addStepper(stepper3);
+
     tickerBlink.start();
     tickerWManager.start();
 
@@ -136,18 +143,24 @@ int SetupTransmitter()
     Serial.print("info:step move time=");
     Serial.println(ROTATING);
     TransmitCoords();
+                                
     return(WeldPerm);
 }
 
 void transmitterLoop()
 {
-    stepper.run();
-    stepper2.run();
-    stepper3.run();
-    tickerBlink.update();
+    if (Started && longDistance){
+        steppers.run();
+    }
+    else{
+        stepper.run();
+        stepper2.run();
+        stepper3.run();
+    }
     tickerWManager.update();
-    ProbeB.tick();
-    StartB.tick();
+    //tickerBlink.update();
+    //ProbeB.tick();
+    //StartB.tick();
 }
 
 void SerialRoutine()
@@ -442,11 +455,28 @@ void WManage()
                     else
                     { 
                         if (steps==lastStepN-1){
-                            stepper2.move(Stepper2LastStep * step2grad);
-                            stepper3.move(Stepper3LastStep * step2grad);
                             stepper.setMaxSpeed(StepperZPointSpeed);
                             stepper.setAcceleration(StepperZPointAcc);
-                            stepper.move(StepperZLastStep * step1mm);
+                            if (longDistance){
+                                long positions[2]; // Array of desired stepper positions
+                                positions[0] = 0;
+                                positions[1] = 0;
+                                positions[2] = 0;
+                                stepper.setCurrentPosition(stepper.currentPosition());
+                                stepper2.setCurrentPosition(stepper2.currentPosition());
+                                stepper3.setCurrentPosition(stepper3.currentPosition());
+                                stepper.setAcceleration(1000000);
+                                stepper2.setAcceleration(1000000);
+                                stepper3.setAcceleration(1000000);
+                                steppers.moveTo(positions);
+                                Serial.println("multisteppers");
+                            }
+                            else{
+                                stepper2.move(Stepper2LastStep * step2grad);
+                                stepper3.move(Stepper3LastStep * step2grad);
+                                stepper.move(StepperZLastStep * step1mm);
+                                Serial.println("basesteppers");
+                            }
                             path=path+sqrt(pow(Stepper2LastStep,2) + pow(Stepper3LastStep,2) + pow(StepperZLastStep,2));
                         }
                         else {
@@ -456,6 +486,7 @@ void WManage()
                             stepper.setAcceleration(StepperZPointAcc);
                             stepper.move(StepperZWeldStep * step1mm);
                             path=path+sqrt(pow(Stepper2WeldStep,2) + pow(Stepper3WeldStep,2) + pow(StepperZWeldStep,2));
+                            Serial.println("basesteppers");
                         }
                     }
                     steps++;
@@ -631,6 +662,7 @@ void StartBFunc(bool p)
         }
         else{
             Move2Point = p;
+            longDistance=false;
             EEPROM.get(ParAddr + 11 * ParAddrDelta, Utarget);
             if (Utarget < 1) {Utarget = 0;} else{
                 Serial.print("Utarget:");
@@ -654,23 +686,19 @@ void StartBFunc(bool p)
                 stepper3.setMaxSpeed((float)Stepper2Speed * a3);
                 stepper3.setAcceleration((float)Stepper2Acc * a3);
                 if (StepperWeldStep==0){
+                    longDistance=true;
                     StepperZWeldStep = zcoord;
                     Stepper2WeldStep = coord2;
                     Stepper3WeldStep = coord3;
-                }
-                else{
-                    StepperZWeldStep = StepperWeldStep * a;
-                    Stepper2WeldStep = StepperWeldStep * a2;
-                    Stepper3WeldStep = StepperWeldStep * a3;
-                }
-                
-                if(StepperWeldStep==0){
                     lastStepN=1;
                     StepperZLastStep=StepperZWeldStep;
                     Stepper2LastStep=Stepper2WeldStep;
                     Stepper3LastStep=Stepper3WeldStep;
                 }
                 else{
+                    StepperZWeldStep = StepperWeldStep * a;
+                    Stepper2WeldStep = StepperWeldStep * a2;
+                    Stepper3WeldStep = StepperWeldStep * a3;
                     float AbsWeldStep=(float) ( sqrt( pow(Stepper2WeldStep,2) + pow(Stepper3WeldStep,2) + pow(StepperZWeldStep,2)) );
                     lastStepN=(int) (pointPath/AbsWeldStep)+1;
                     Stepper2LastStep= coord2 - Stepper2WeldStep * (lastStepN-1);
@@ -716,7 +744,15 @@ void StartBFunc(bool p)
                     Stepper3LastStep=-Stepper3LastStep;
                 }
 
-                Timings((float)Stepper2Acc * a2, Stepper2Speed * a2);
+                if(longDistance){
+                    tickerWManager.interval(WManageTMultiStep);
+                    Timings((float)Stepper2Acc * a2, Stepper2Speed * a2, WManageTMultiStep);
+                }
+                else{
+                    tickerWManager.interval(WManageT);
+                    Timings((float)Stepper2Acc * a2, Stepper2Speed * a2, WManageT);
+                }
+                
                 /*Serial.print("LasststepN=");
                 Serial.println(lastStepN);
                 Serial.print("Stepper2WeldStep=");
@@ -746,7 +782,7 @@ void StartBFunc(bool p)
                 stepper2.setMaxSpeed(Stepper2Speed);
                 stepper2.setAcceleration(Stepper2Acc);
                 Stepper2WeldStep=StepperWeldStep;
-                Timings(Stepper2Acc, Stepper2Speed);
+                Timings(Stepper2Acc, Stepper2Speed, WManageT);
                 Serial.println("TIG Start");
             }
             UcountAbs = -1;
@@ -771,8 +807,14 @@ void StopBFunc()
 //#ifdef DEBUG
     Serial.println("TIG Stop");
 //#endif
-    Started = false;
     digitalWrite(ReleOut, LOW);
+    if (longDistance){
+        stepper.setCurrentPosition(stepper.currentPosition());
+        stepper2.setCurrentPosition(stepper2.currentPosition());
+        stepper3.setCurrentPosition(stepper3.currentPosition());
+        tickerWManager.interval(WManageT);
+    }
+    Started = false;
     stepper.stop();
     stepper2.stop();
     stepper3.stop();
@@ -877,7 +919,7 @@ void LoadPars()
         EEPROM.get(CoordAddr + 2 * ParAddrDelta, initZ);
     }
 
-    Timings(Stepper2Acc, Stepper2Speed);
+    Timings(Stepper2Acc, Stepper2Speed, WManageT);
 
     if (!(WeldPerm == 1))
         ZPerm = 0;
@@ -885,12 +927,12 @@ void LoadPars()
         ProbeDone = true;
 }
 
-void Timings(float realstepper2acc, int realstepper2speed){
-    PulseDuration = (int)((PULSE + SparkDuration + NoSparkPause) / WManageT);
+void Timings(float realstepper2acc, int realstepper2speed, int WM){
+    PulseDuration = (int)((PULSE + SparkDuration + NoSparkPause) / WM);
     ROTATING = int((float)realstepper2speed / (float)realstepper2acc * 1000 + (float)step2grad * (float)(abs(Stepper2WeldStep)) / (float)realstepper2speed * 1000) + 300;
-    CoolingDuration = (int)((COOLING + ROTATING) / WManageT);
-    RotatinDuration = (int)(ROTATING / WManageT);
-    RelePulseDuration = (int)((PULSE) / WManageT);
+    CoolingDuration = (int)((COOLING + ROTATING) / WM);
+    RotatinDuration = (int)(ROTATING / WM);
+    RelePulseDuration = (int)((PULSE) / WM);
 }
 
 void SendCoords(){

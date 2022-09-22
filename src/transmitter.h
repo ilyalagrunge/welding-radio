@@ -1,5 +1,6 @@
 #include <AccelStepper.h>
 #include "OneButton.h"
+#include <MultiStepper.h>
 
 void ProbeBFunc();
 void ProbeFin();
@@ -18,7 +19,7 @@ void LoadPars();
 void SendCoords();
 void TransmitCoords();
 void TransmitCoordsRoutine();
-void Timings(float, int);
+void Timings(float, int, int);
 
 //#define FinPointProtection
 
@@ -62,6 +63,7 @@ void Timings(float, int);
 #define BlinkMeasure 500
 
 #define WManageT 50
+#define WManageTMultiStep 50
 #define NoSparkPause 1000
 
 #define UmaxD 1
