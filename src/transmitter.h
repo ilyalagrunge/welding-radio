@@ -19,7 +19,8 @@ void LoadPars();
 void SendCoords();
 void TransmitCoords();
 void TransmitCoordsRoutine();
-void Timings(float, int, int);
+void Timings(float, int, float, int);
+void SpeedAccSteps2PointCalc(bool);
 
 //#define FinPointProtection
 
@@ -33,6 +34,7 @@ void Timings(float, int, int);
 #define StartBtn 3
 #define LedOut 9
 #define ReleOut 17
+#define longDistStep 5
 
 #define step2minMove 3
 #define stepminMove 3
