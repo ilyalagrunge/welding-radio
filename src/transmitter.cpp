@@ -545,7 +545,7 @@ void WManage()
                         else
                         {
                             if (longDistance) {
-                                if (LongDistanceReleConfirm){
+                                if (LongDistanceReleConfirm || WeldPerm==0){
                                     SpeedAccSteps2PointCalc(false);
                                     stepper2.moveTo(0);
                                     stepper3.moveTo(0);
