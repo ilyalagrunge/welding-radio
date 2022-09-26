@@ -45,6 +45,7 @@ void Welding()
             digitalWrite(TigSwitch, HIGH);
             #ifndef RecieverEWM
                 Weld = true;
+                RadioSendRepeat(SparkFail);
             #endif
         }
         if (WeldCount == WeldPulse)

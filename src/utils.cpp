@@ -61,7 +61,11 @@ void RadioRoutine()
         }
         if (!(checkcount < dataRepeat) && (data[i] > 0))
         {
-            RadioBlockCounter = RadioBlock;
+            #if defined(RecieverEWM) && defined(RECIEVER)
+                RadioBlockCounter = RadioBlock;
+            #else
+                RadioBlockCounter = RadioBlockRadioRele;
+            #endif
             message = data[i];
 #ifdef RECIEVER
             TigStart(message);
@@ -73,7 +77,7 @@ void RadioRoutine()
                 Serial.println("Reciever Reseted!");
                 break;
             case SparkFail:
-                Serial.println("Spark Failure!");
+                if (!LongDistanceSparkFailure()) Serial.println("Spark Failure!");
                 break;
             default:
                 Serial.print("U=");

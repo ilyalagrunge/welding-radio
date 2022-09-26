@@ -37,6 +37,7 @@ float StepperZLastStep = 0;
 int lastStepN = 0;
 float TigHeight = 0;
 int WeldPerm = 0;
+bool LongDistanceReleConfirm=false;
 int ZPerm = 0;
 int XPerm = 0;
 int NPulses = 0;
@@ -389,9 +390,17 @@ void SerialRoutine()
     }
 }
 
+bool LongDistanceSparkFailure(){
+    if ((WeldPerm==2) && Started){
+        LongDistanceReleConfirm=true;
+        CoolingCounter=0;
+        return true;
+    }
+    return false;
+}
+
 void Uroutine(int Uroute)
 {
-    
     if ((WeldPerm == 0) || longDistance)
         return;
     float UrouteF;
@@ -536,10 +545,15 @@ void WManage()
                         else
                         {
                             if (longDistance) {
-                                SpeedAccSteps2PointCalc(false);
-                                stepper2.moveTo(0);
-                                stepper3.moveTo(0);
-                                stepper.moveTo(0);
+                                if (LongDistanceReleConfirm){
+                                    SpeedAccSteps2PointCalc(false);
+                                    stepper2.moveTo(0);
+                                    stepper3.moveTo(0);
+                                    stepper.moveTo(0);
+                                }else{
+                                    steps--;
+                                    CoolingCounter=LongDistanceRepeatCounter;
+                                }
                             }
                             else{
                                 stepper2.move(Stepper2WeldStep * step2grad);
@@ -586,6 +600,9 @@ void WManage()
                 if ((WeldPerm > 0) && (!longDistance))
                 {
                     RadioSendRepeat(PULSE);
+                }
+                else if ((WeldPerm==2) && longDistance && !LongDistanceReleConfirm){
+                    RadioSendRepeat((ROTATING+20)*lastStepN);
                 }
                 else
                 {
@@ -737,6 +754,7 @@ void StartBFunc(bool p)
         {
             Move2Point = p;
             longDistance = false;
+            LongDistanceReleConfirm = false;
             EEPROM.get(ParAddr + 11 * ParAddrDelta, Utarget);
             if (Utarget < 1)
             {
@@ -769,9 +787,6 @@ void StartBFunc(bool p)
             WaitUcounter = PulseDuration;
             CoolingCounter = 0;
             Started = true;
-            if ((WeldPerm==2) && longDistance){
-                RadioSendRepeat((ROTATING+20)*lastStepN);
-            }
         }
 #ifdef StartNeedsProbe
     }

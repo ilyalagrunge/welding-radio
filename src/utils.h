@@ -22,6 +22,7 @@
 #define RadioRepeat 1
 #define RadioDelay 50
 #define RadioBlock 5
+#define RadioBlockRadioRele 1
 
 #define ThU 0.2
 #define LimU 40

@@ -9,6 +9,7 @@ void StopBFunc();
 void StartBSwitch();
 
 void Uroutine(int);
+bool LongDistanceSparkFailure();
 void WManage();
 void SerialRoutine();
 void stepperMoves();
@@ -66,6 +67,7 @@ void SpeedAccSteps2PointCalc(bool);
 
 #define WManageT 50
 #define WManageTMultiStep 50
+#define LongDistanceRepeatCounter 10
 #define NoSparkPause 1000
 
 #define UmaxD 1
