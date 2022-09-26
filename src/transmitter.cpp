@@ -391,6 +391,7 @@ void SerialRoutine()
 
 void Uroutine(int Uroute)
 {
+    
     if ((WeldPerm == 0) || longDistance)
         return;
     float UrouteF;
@@ -468,7 +469,7 @@ void WManage()
         {
             if (CoolingCounter == RotatinDuration)
             {
-                TransmitCoords();
+                if (!longDistance) TransmitCoords();
                 if (Move2Point)
                 {
                     if (steps == lastStepN)
