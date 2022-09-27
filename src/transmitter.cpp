@@ -12,6 +12,9 @@ bool Move2Point = false;
 bool BlinkState = false;
 bool Started = false;
 bool longDistance = false;
+bool RepeatMessageSend = false;
+int RepeatMessageCounter = 0;
+int RepeatMessage = 0;
 int WaitUcounter = 0;
 int CoolingCounter = 0;
 float path = 0;
@@ -387,6 +390,11 @@ void SerialRoutine()
             EEPROM.put(CoordAddr + 2 * ParAddrDelta, (float)stepper.currentPosition());
             Serial.println("Coords Saved:");
         }
+        else if (a == "WELD")
+        {
+            if (WeldPerm==2) RepeatMessageStart(TigStartCom);
+            if (WeldPerm==1) RepeatMessageStart(TigPointT);
+        }
     }
 }
 
@@ -467,9 +475,40 @@ void Uroutine(int Uroute)
     }
 }
 
+void RepeatMessageStart(int mes){
+    RepeatMessage=mes;
+    RepeatMessageCounter=RepeatMessageCounterMax;
+    RepeatMessageSend=true;
+}
+
+void RepeatMessageStop(){
+    RepeatMessageSend=false;
+}
+
+bool RepeatMessageStopBool(){
+    bool temp;
+    temp = RepeatMessageSend;
+    RepeatMessageStop();
+    return temp;
+}
+
+void RepeatMessageRoutine(){
+    if (RepeatMessageSend){
+        if (RepeatMessageCounter==RepeatMessageCounterMax) RadioSendRepeat(RepeatMessage);
+        if (RepeatMessageCounter>0){
+            RepeatMessageCounter--;
+        }
+        else{
+            RepeatMessageCounter=RepeatMessageCounterMax;
+            Serial.println("No Answer");
+        }
+    }
+}
+
 void WManage()
 {
     SerialRoutine();
+    RepeatMessageRoutine();
     if (!(longDistance && Started)) TransmitCoordsRoutine();
     
     if (Started)
@@ -553,6 +592,7 @@ void WManage()
                                 }else{
                                     steps--;
                                     CoolingCounter=LongDistanceRepeatCounter;
+                                    Serial.println("No Answer");
                                 }
                             }
                             else{
@@ -602,7 +642,7 @@ void WManage()
                     RadioSendRepeat(PULSE);
                 }
                 else if ((WeldPerm==2) && longDistance && !LongDistanceReleConfirm){
-                    RadioSendRepeat((ROTATING+20)*lastStepN);
+                    RadioSendRepeat(TigStartCom);
                 }
                 else
                 {
@@ -937,6 +977,7 @@ void StopBFunc()
     Serial.println("TIG Stop");
     //#endif
     digitalWrite(ReleOut, LOW);
+    if (WeldPerm==2) RepeatMessageStart(TigStopCom);
     if (longDistance)
     {
         stepper.setCurrentPosition(stepper.currentPosition());

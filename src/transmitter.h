@@ -11,6 +11,10 @@ void StartBSwitch();
 void Uroutine(int);
 bool LongDistanceSparkFailure();
 void WManage();
+void RepeatMessageRoutine();
+void RepeatMessageStart(int);
+void RepeatMessageStop();
+bool RepeatMessageStopBool();
 void SerialRoutine();
 void stepperMoves();
 int SetupTransmitter();
@@ -83,3 +87,6 @@ void SpeedAccSteps2PointCalc(bool);
 #define CommandSerialLength 10
 
 #define TransmitCoordsCounterMax 10
+#define RepeatMessageCounterMax 10
+
+#define TigPointT 200

@@ -14,6 +14,8 @@
 
 #define SparkFail 1
 #define Reseted 2
+#define TigStartCom 1
+#define TigStopCom 2
 
 #define PIN_CE 8
 #define PIN_CSN 10

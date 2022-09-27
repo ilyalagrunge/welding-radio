@@ -77,7 +77,7 @@ void RadioRoutine()
                 Serial.println("Reciever Reseted!");
                 break;
             case SparkFail:
-                if (!LongDistanceSparkFailure()) Serial.println("Spark Failure!");
+                if (!LongDistanceSparkFailure() && !RepeatMessageStopBool()) Serial.println("Spark Failure!");
                 break;
             default:
                 Serial.print("U=");
@@ -121,8 +121,17 @@ void RadioSendRepeat(int t)
         if (RadioRepeat>1) delay(RadioDelay);
     }
     #ifdef TRANSMITTER
-        Serial.print("Pulse duration : ");
-        Serial.println(t);
+        switch (t)
+        {
+        case TigStartCom:
+            break;
+        case TigStopCom:
+            break;
+        default:
+            Serial.print("Pulse duration : ");
+            Serial.println(t);
+            break;
+        }
     #endif
 }
 

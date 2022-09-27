@@ -76,9 +76,24 @@ void Welding()
 
 void TigStart(long PulseT)
 {
-    WeldCount = 0;
-    WeldPulse = (long)(WeldWait + PulseT / TMeasure);
-    PulseStarted = true;
+    switch (PulseT)
+    {
+    case TigStartCom:
+        digitalWrite(TigSwitch, HIGH);
+        RadioSendRepeat(SparkFail);
+        break;
+
+    case TigStopCom:
+        digitalWrite(TigSwitch, LOW);
+        RadioSendRepeat(SparkFail);
+        break;
+    
+    default:
+        WeldCount = 0;
+        WeldPulse = (long)(WeldWait + PulseT / TMeasure);
+        PulseStarted = true;
+        break;
+    }
 }
 
 void TigFinish()
