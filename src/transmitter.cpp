@@ -393,7 +393,7 @@ void SerialRoutine()
         else if (a == "WELD")
         {
             if (WeldPerm==2) RepeatMessageStart(TigStartCom);
-            if (WeldPerm==1) RepeatMessageStart(TigPointT);
+            if (WeldPerm==1) RadioSendRepeat(TigPointT);
         }
     }
 }
