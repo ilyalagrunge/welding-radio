@@ -51,7 +51,7 @@ void SpeedAccSteps2PointCalc(bool);
 #define ProbeMoveMM -5
 #define InitMoveMM 0
 
-#define Stepper2Speed_DEFAULT 10000
+#define Stepper2Speed_DEFAULT 1500
 #define Stepper2Acc_DEFAULT 3000
 #define step2grad_DEFAULT 250
 #define InitMoveMM2 0
@@ -87,6 +87,6 @@ void SpeedAccSteps2PointCalc(bool);
 #define CommandSerialLength 10
 
 #define TransmitCoordsCounterMax 10
-#define RepeatMessageCounterMax 10
+#define RepeatMessageCounterMax 15
 
 #define TigPointT 200

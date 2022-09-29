@@ -256,7 +256,7 @@ void SerialRoutine()
             if (!Started)
             {
                 stepper2.setAcceleration(Stepper2Acc);
-                stepper2.setMaxSpeed(Stepper2Speed * 4);
+                stepper2.setMaxSpeed(Stepper2Speed_DEFAULT * 4);
             }
             step2move = step2minMove;
         }
@@ -265,7 +265,7 @@ void SerialRoutine()
             if (!Started)
             {
                 stepper2.setAcceleration(Stepper2Acc);
-                stepper2.setMaxSpeed(Stepper2Speed * 4);
+                stepper2.setMaxSpeed(Stepper2Speed_DEFAULT * 4);
             }
             step2move = -step2minMove;
         }
@@ -276,7 +276,7 @@ void SerialRoutine()
                 if (!Started)
                 {
                     stepper3.setAcceleration(Stepper2Acc);
-                    stepper3.setMaxSpeed(Stepper2Speed * 4);
+                    stepper3.setMaxSpeed(Stepper2Speed_DEFAULT * 4);
                 }
                 step3move = step2minMove;
             }
@@ -288,7 +288,7 @@ void SerialRoutine()
                 if (!Started)
                 {
                     stepper3.setAcceleration(Stepper2Acc);
-                    stepper3.setMaxSpeed(Stepper2Speed * 4);
+                    stepper3.setMaxSpeed(Stepper2Speed_DEFAULT * 4);
                 }
                 step3move = -step2minMove;
             }
@@ -316,7 +316,7 @@ void SerialRoutine()
             if (!Started)
             {
                 stepper2.setAcceleration(Stepper2Acc);
-                stepper2.setMaxSpeed(Stepper2Speed / 4);
+                stepper2.setMaxSpeed(Stepper2Speed_DEFAULT / 4);
             }
             step2move = step2minMove;
         }
@@ -325,7 +325,7 @@ void SerialRoutine()
             if (!Started)
             {
                 stepper2.setAcceleration(Stepper2Acc);
-                stepper2.setMaxSpeed(Stepper2Speed / 4);
+                stepper2.setMaxSpeed(Stepper2Speed_DEFAULT / 4);
             }
             step2move = -step2minMove;
         }
@@ -336,7 +336,7 @@ void SerialRoutine()
                 if (!Started)
                 {
                     stepper3.setAcceleration(Stepper2Acc);
-                    stepper3.setMaxSpeed(Stepper2Speed / 4);
+                    stepper3.setMaxSpeed(Stepper2Speed_DEFAULT / 4);
                 }
                 step3move = step2minMove;
             }
@@ -348,7 +348,7 @@ void SerialRoutine()
                 if (!Started)
                 {
                     stepper3.setAcceleration(Stepper2Acc);
-                    stepper3.setMaxSpeed(Stepper2Speed / 4);
+                    stepper3.setMaxSpeed(Stepper2Speed_DEFAULT / 4);
                 }
                 step3move = -step2minMove;
             }
@@ -513,7 +513,11 @@ void WManage()
     
     if (Started)
     {
-        if (CoolingCounter > 0)
+        if ((longDistance) && (stepper2.currentPosition() == 0) && (stepper3.currentPosition() == 0) && (stepper.currentPosition() == 0)){
+            StopBFunc();
+            TransmitCoordsRoutine();
+        }
+        else if (CoolingCounter > 0)
         {
             if (CoolingCounter == RotatinDuration)
             {
@@ -524,19 +528,11 @@ void WManage()
                     {
                         if (longDistance)
                         {
-                            if ((stepper2.currentPosition() == 0) && (stepper3.currentPosition() == 0) && (stepper.currentPosition() == 0))
-                            {
-                                StopBFunc();
-                                TransmitCoordsRoutine();
-                            }
-                            else
-                            {
-                                SpeedAccSteps2PointCalc(false);
-                                stepper2.moveTo(0);
-                                stepper3.moveTo(0);
-                                stepper.moveTo(0);
-                                steps--;
-                            }
+                            SpeedAccSteps2PointCalc(false);
+                            stepper2.moveTo(0);
+                            stepper3.moveTo(0);
+                            stepper.moveTo(0);
+                            steps--;
                         }
                         else
                         {
