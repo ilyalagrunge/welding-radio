@@ -1,6 +1,11 @@
 #include <EEPROM.h>
 #include "utils.h"
 
+int LinearWelding=0;
+float Zcompensation=1;
+float Ycompensation=0;
+float Xcompensation=0;
+
 float UintAbs = 0;
 long UcountAbs = -1;
 float Utarget = 0;
@@ -27,9 +32,12 @@ int CoolingDuration = 0;
 int RotatinDuration = 0;
 int Stepper2Speed = 0;
 int Stepper2Acc = 0;
+int step2grad = 0;
+int Stepper3Speed = 0;
+int Stepper3Acc = 0;
+int step3mm = 0;
 float StepperZPointSpeed = 0;
 float StepperZPointAcc = 0;
-int step2grad = 0;
 float StepperWeldStep = 0;
 float Stepper2WeldStep = 0;
 float Stepper3WeldStep = 0;
@@ -115,7 +123,7 @@ int SetupTransmitter()
 
     stepper.move(InitMoveMM * step1mm);
     stepper2.move(InitMoveMM2 * step2grad);
-    stepper3.move(InitMoveMM2 * step2grad);
+    stepper3.move(InitMoveMM2 * step3mm);
 
     Serial.println("TRANSMITTER");
     Serial.print("Pulse=");
@@ -136,12 +144,48 @@ int SetupTransmitter()
     Serial.println(XPerm);
     Serial.print("NPulses=");
     Serial.println(NPulses);
-    Serial.print("step2grad=");
+
+    Serial.print("stepXmm=");
+    Serial.println(step3mm);
+    Serial.print("StepperXAcc=");
+    Serial.println(Stepper3Acc);
+    Serial.print("StepperXSpeed=");
+    Serial.println(Stepper3Speed);
+
+    if (LinearWelding==0) {
+        Serial.print("stepYgrad=");   
+    }
+    else {
+        Serial.print("stepYmm=");   
+    }
     Serial.println(step2grad);
-    Serial.print("Stepper2Acc=");
+    Serial.print("StepperYAcc=");
     Serial.println(Stepper2Acc);
-    Serial.print("Stepper2Speed=");
+    Serial.print("StepperYSpeed=");
     Serial.println(Stepper2Speed);
+
+    Serial.print("stepZmm=");
+    Serial.println(step1mm);
+    Serial.print("StepperZAcc=");
+    Serial.println(StepperAcc);
+    Serial.print("StepperZSpeed=");
+    Serial.println(StepperSpeed);
+
+    Serial.print("xCompensation=");
+    Serial.println(Xcompensation);
+    Serial.print("yCompensation=");
+    Serial.println(Ycompensation);
+    Serial.print("zCompensation=");
+    Serial.println(Zcompensation);
+
+    Serial.print("type of Welding: ");
+    if (LinearWelding==0) {
+        Serial.println("Rotating");
+    }
+    else {
+        Serial.println("Linear");
+    }
+
     Serial.print("info:step move time=");
     Serial.println(ROTATING);
     TransmitCoords();
@@ -205,11 +249,15 @@ void SerialRoutine()
             case 8:
             case 9:
             case 10:
+            case 12:
                 EEPROM.put(ParAddr + i * ParAddrDelta, pars[i].toInt());
                 break;
             case 2:
             case 3:
             case 11:
+            case 13:
+            case 14:
+            case 15:
                 EEPROM.put(ParAddr + i * ParAddrDelta, pars[i].toFloat());
                 break;
             default:
@@ -1078,6 +1126,41 @@ void LoadPars()
             if (Utarget < 1)
                 Utarget = 0;
             break;
+        case 12:
+            EEPROM.get(ParAddr + i * ParAddrDelta, LinearWelding);
+            if (LinearWelding != 0) {
+                LinearWelding = 1;
+                step3mm = step3mm_Linear;
+                Stepper3Acc = Stepper3Acc_Linear;
+                Stepper3Speed = Stepper3Speed_Linear;
+            }
+            else {
+                step3mm = step3mm_Rotating;
+                Stepper3Acc = Stepper3Acc_Rotating;
+                Stepper3Speed = Stepper3Speed_Rotating;
+            }
+            break;
+        case 13:
+            EEPROM.get(ParAddr + i * ParAddrDelta, Xcompensation);
+            if (Xcompensation > 1)
+                Xcompensation = 1;
+            if (Xcompensation < -1)
+                Xcompensation = -1;
+            break;
+         case 14:
+            EEPROM.get(ParAddr + i * ParAddrDelta, Ycompensation);
+            if (Ycompensation > 1)
+                Ycompensation = 1;
+            if (Ycompensation < -1)
+                Ycompensation = -1;
+            break;
+         case 15:
+            EEPROM.get(ParAddr + i * ParAddrDelta, Zcompensation);
+            if (Zcompensation > 1)
+                Zcompensation = 1;
+            if (Zcompensation < -1)
+                Zcompensation = -1;
+            break;
         default:
             break;
         }
@@ -1111,7 +1194,7 @@ void SendCoords()
 void TransmitCoords()
 {
     Serial.print("X:");
-    Serial.println((float)stepper3.currentPosition() / (float)step2grad, 1);
+    Serial.println((float)stepper3.currentPosition() / (float)step3mm, 1);
     Serial.print("Y:");
     Serial.println((float)stepper2.currentPosition() / (float)step2grad, 1);
     Serial.print("Z:");
