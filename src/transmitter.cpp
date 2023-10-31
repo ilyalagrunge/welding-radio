@@ -123,7 +123,7 @@ int SetupTransmitter()
 
     stepper.move(InitMoveMM * step1mm);
     stepper2.move(InitMoveMM2 * step2grad);
-    stepper3.move(InitMoveMM2 * step3mm);
+    stepper3.move(InitMoveMM3 * step3mm);
 
     Serial.println("TRANSMITTER");
     Serial.print("Pulse=");
@@ -515,7 +515,13 @@ void Uroutine(int Uroute)
                     {
                         stepper.setAcceleration(StepperAcc);
                         stepper.setMaxSpeed(StepperSpeed);
-                        stepper.move(deltaH * step1mm);
+                        stepper2.setAcceleration(Stepper2Acc);
+                        stepper2.setMaxSpeed(Stepper2Speed);
+                        stepper3.setAcceleration(Stepper3Acc);
+                        stepper3.setMaxSpeed(Stepper3Speed);
+                        stepper.move(deltaH * Zcompensation * step1mm);
+                        stepper2.move(deltaH * Ycompensation * step1mm);
+                        stepper3.move(deltaH * Xcompensation * step1mm);
                     }
                 }
             }
@@ -618,7 +624,7 @@ void WManage()
                             else
                             {
                                 stepper2.move(Stepper2LastStep * step2grad);
-                                stepper3.move(Stepper3LastStep * step2grad);
+                                stepper3.move(Stepper3LastStep * step3mm);
                                 stepper.move(StepperZLastStep * step1mm);
                             }
                             // Serial.println("basesteppers");
@@ -641,7 +647,7 @@ void WManage()
                             }
                             else{
                                 stepper2.move(Stepper2WeldStep * step2grad);
-                                stepper3.move(Stepper3WeldStep * step2grad);
+                                stepper3.move(Stepper3WeldStep * step3mm);
                                 stepper.setMaxSpeed(StepperZPointSpeed);
                                 stepper.setAcceleration(StepperZPointAcc);
                                 stepper.move(StepperZWeldStep * step1mm);
@@ -731,7 +737,7 @@ void stepperMoves()
         step3move -= step3sign;
         if (step3move != 0)
         {
-            stepper3.move((long)(step2grad * step3sign * 10));
+            stepper3.move((long)(step3mm * step3sign * 10));
         }
         else
         {
@@ -884,9 +890,9 @@ void StartBFunc(bool p)
 void SpeedAccSteps2PointCalc(bool launch)
 {
     float pointPath = 0;
-    pointPath = (float)(sqrt(pow((float)stepper2.currentPosition() / step2grad, 2) + pow((float)stepper3.currentPosition() / step2grad, 2) + pow((float)stepper.currentPosition() / step1mm, 2)));
+    pointPath = (float)(sqrt(pow((float)stepper2.currentPosition() / step2grad, 2) + pow((float)stepper3.currentPosition() / step3mm, 2) + pow((float)stepper.currentPosition() / step1mm, 2)));
     float coord2 = abs((float)stepper2.currentPosition()) / step2grad;
-    float coord3 = abs((float)stepper3.currentPosition()) / step2grad;
+    float coord3 = abs((float)stepper3.currentPosition()) / step3mm;
     float zcoord = abs((float)stepper.currentPosition()) / step1mm;
     float a = zcoord / pointPath;
     float a2 = coord2 / pointPath;

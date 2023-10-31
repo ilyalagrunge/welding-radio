@@ -56,6 +56,8 @@ void SpeedAccSteps2PointCalc(bool);
 #define step2grad_DEFAULT 250
 #define InitMoveMM2 0
 
+#define InitMoveMM3 0
+
 #define Stepper3Speed_Linear 1500
 #define Stepper3Acc_Linear 3000
 #define step3mm_Linear 250
