@@ -56,6 +56,14 @@ void SpeedAccSteps2PointCalc(bool);
 #define step2grad_DEFAULT 250
 #define InitMoveMM2 0
 
+#define Stepper3Speed_Linear 1500
+#define Stepper3Acc_Linear 3000
+#define step3mm_Linear 250
+
+#define Stepper3Speed_Rotating 1500
+#define Stepper3Acc_Rotating 3000
+#define step3mm_Rotating 250
+
 #define Stepper2WeldStep_DEFAULT 2
 #define PULSE_DEFAULT 300
 #define COOLING_DEFAULT 7000
@@ -82,7 +90,7 @@ void SpeedAccSteps2PointCalc(bool);
 #define ParAddr 0
 #define CoordAddr 200
 #define ParAddrDelta sizeof(float)
-#define ParCount 12
+#define ParCount 16
 #define MinSerialLength 1
 #define CommandSerialLength 10
 
