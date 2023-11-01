@@ -24,7 +24,7 @@ void LoadPars();
 void SendCoords();
 void TransmitCoords();
 void TransmitCoordsRoutine();
-void Timings(float, int, float, int);
+void Timings(float, int, float, int, int);
 void SpeedAccSteps2PointCalc(bool);
 
 //#define FinPointProtection
@@ -44,27 +44,31 @@ void SpeedAccSteps2PointCalc(bool);
 #define step2minMove 3
 #define stepminMove 3
 
-#define StepperSpeed 600
+#define StepperSpeed 300
 #define StepperAcc 10000
 #define ProbeSpeed 120
-#define step1mm 200 //    800 / 4 TR
+#define step1mm 100 //    800 / 4 TR
 #define ProbeMoveMM -5
 #define InitMoveMM 0
 
-#define Stepper2Speed_DEFAULT 1500
-#define Stepper2Acc_DEFAULT 3000
-#define step2grad_DEFAULT 250
+#define Stepper2Speed_Linear 600
+#define Stepper2Acc_Linear 20000
+#define step2grad_Linear 160
+
+#define Stepper2Speed_Rotating 200
+#define Stepper2Acc_Rotating 6000
+#define step2grad_Rotating 34
 #define InitMoveMM2 0
 
 #define InitMoveMM3 0
 
-#define Stepper3Speed_Linear 1500
-#define Stepper3Acc_Linear 3000
-#define step3mm_Linear 250
+#define Stepper3Speed_Linear 600
+#define Stepper3Acc_Linear 20000
+#define step3mm_Linear 160
 
-#define Stepper3Speed_Rotating 1500
-#define Stepper3Acc_Rotating 3000
-#define step3mm_Rotating 250
+#define Stepper3Speed_Rotating 600
+#define Stepper3Acc_Rotating 20000
+#define step3mm_Rotating 200
 
 #define Stepper2WeldStep_DEFAULT 2
 #define PULSE_DEFAULT 300
@@ -92,7 +96,7 @@ void SpeedAccSteps2PointCalc(bool);
 #define ParAddr 0
 #define CoordAddr 200
 #define ParAddrDelta sizeof(float)
-#define ParCount 16
+#define ParCount 14
 #define MinSerialLength 1
 #define CommandSerialLength 10
 

@@ -36,8 +36,15 @@ int step2grad = 0;
 int Stepper3Speed = 0;
 int Stepper3Acc = 0;
 int step3mm = 0;
+
+float WeldingSpeed = 0;
+
 float StepperZPointSpeed = 0;
 float StepperZPointAcc = 0;
+float StepperYPointSpeed = 0;
+float StepperYPointAcc = 0;
+float StepperXPointSpeed = 0;
+float StepperXPointAcc = 0;
 float StepperWeldStep = 0;
 float Stepper2WeldStep = 0;
 float Stepper3WeldStep = 0;
@@ -110,8 +117,8 @@ int SetupTransmitter()
     stepper2.setCurrentPosition(initY);
 
     stepper3.setPinsInverted(false, false);
-    stepper3.setMaxSpeed(Stepper2Speed);
-    stepper3.setAcceleration(Stepper2Acc);
+    stepper3.setMaxSpeed(Stepper3Speed);
+    stepper3.setAcceleration(Stepper3Acc);
     stepper3.setCurrentPosition(initX);
 
     // steppers.addStepper(stepper);
@@ -126,25 +133,7 @@ int SetupTransmitter()
     stepper3.move(InitMoveMM3 * step3mm);
 
     Serial.println("TRANSMITTER");
-    Serial.print("Pulse=");
-    Serial.println(PULSE);
-    Serial.print("Cooling=");
-    Serial.println(COOLING);
-    Serial.print("WeldStep=");
-    Serial.println(Stepper2WeldStep);
-    Serial.print("TigHeight=");
-    Serial.println(TigHeight);
-    Serial.print("Utarget:");
-    Serial.println(Utarget);
-    Serial.print("WeldPerm=");
-    Serial.println(WeldPerm);
-    Serial.print("ZPerm=");
-    Serial.println(ZPerm);
-    Serial.print("XPerm=");
-    Serial.println(XPerm);
-    Serial.print("NPulses=");
-    Serial.println(NPulses);
-
+    
     Serial.print("stepXmm=");
     Serial.println(step3mm);
     Serial.print("StepperXAcc=");
@@ -170,13 +159,14 @@ int SetupTransmitter()
     Serial.println(StepperAcc);
     Serial.print("StepperZSpeed=");
     Serial.println(StepperSpeed);
+    
+    Serial.print("ZPerm=");
+    Serial.println(ZPerm);
+    Serial.print("XPerm=");
+    Serial.println(XPerm);
 
-    Serial.print("xCompensation=");
-    Serial.println(Xcompensation);
-    Serial.print("yCompensation=");
-    Serial.println(Ycompensation);
-    Serial.print("zCompensation=");
-    Serial.println(Zcompensation);
+    Serial.print("info:step move time=");
+    Serial.println(ROTATING);
 
     Serial.print("type of Welding: ");
     if (LinearWelding==0) {
@@ -186,8 +176,29 @@ int SetupTransmitter()
         Serial.println("Linear");
     }
 
-    Serial.print("info:step move time=");
-    Serial.println(ROTATING);
+    Serial.print("Pulse=");
+    Serial.println(PULSE);
+    Serial.print("Cooling=");
+    Serial.println(COOLING);
+    Serial.print("WeldStep=");
+    Serial.println(Stepper2WeldStep);
+    Serial.print("TigHeight=");
+    Serial.println(TigHeight);
+    Serial.print("Utarget:");
+    Serial.println(Utarget);
+    Serial.print("WeldPerm=");
+    Serial.println(WeldPerm);
+    Serial.print("NPulses=");
+    Serial.println(NPulses);
+    Serial.print("WeldSpeed=");
+    Serial.println((int)(WeldingSpeed*1000));
+    Serial.print("xCompensation=");
+    Serial.println(Xcompensation);
+    Serial.print("yCompensation=");
+    Serial.println(Ycompensation);
+    Serial.print("zCompensation=");
+    Serial.println(Zcompensation);
+
     TransmitCoords();
 
     return (WeldPerm);
@@ -226,18 +237,34 @@ void SerialRoutine()
             SerialString = "";
         }
     }
+    
+    if (a=="") return;
+    //else Serial.println(a);
 
     String pars[ParCount];
-    int i = 0;
-    int index = 0;
+    unsigned int i = 0;
+    unsigned int index = 0;
 
     if (a.length() > CommandSerialLength)
     {
+        pars[0]="";
+        for (i = 0; i < a.length(); i++){
+            if (a[i]==';') {
+                //Serial.println("par=");
+                //Serial.print(pars[index]);
+                index++;
+                pars[index]="";
+            }
+            else {
+                //Serial.println((int)(a[i]));
+                pars[index] = String(pars[index] + String(a[i]));
+            }
+        }
+        //Serial.print("finIndex=");
+        //Serial.println(index);
+        if (index<ParCount) return;
         for (i = 0; i < ParCount; i++)
         {
-            index = a.indexOf(';');
-            pars[i] = a.substring(0, index);
-            a = a.substring(index + 1);
             switch (i)
             {
             case 0:
@@ -246,24 +273,25 @@ void SerialRoutine()
             case 5:
             case 6:
             case 7:
-            case 8:
             case 9:
-            case 10:
-            case 12:
                 EEPROM.put(ParAddr + i * ParAddrDelta, pars[i].toInt());
                 break;
             case 2:
             case 3:
+            case 8:
+            case 10:
             case 11:
-            case 13:
-            case 14:
-            case 15:
+            case 12:
                 EEPROM.put(ParAddr + i * ParAddrDelta, pars[i].toFloat());
+                break;
+            case 13:
+                EEPROM.put(ParAddr + i * ParAddrDelta, (float)(pars[i].toFloat() / (float)1000));
                 break;
             default:
                 break;
             }
         }
+        //return;
         resetFunc();
     }
     else if (a.length() > MinSerialLength)
@@ -287,6 +315,30 @@ void SerialRoutine()
         {
             StopBFunc();
         }
+        else if (a == "Y360")
+        {
+            if (!Started)
+            {
+                FinPoint = true;
+                stepper.setCurrentPosition(0);
+                stepper2.setCurrentPosition((long)360*(long)step2grad);
+                stepper3.setCurrentPosition(0);
+                Serial.println("Fin Point Set");
+                TransmitCoords();
+            }
+        }
+        else if (a == "Y-360")
+        {
+            if (!Started)
+            {
+                FinPoint = true;
+                stepper.setCurrentPosition(0);
+                stepper2.setCurrentPosition((long)-360*(long)step2grad);
+                stepper3.setCurrentPosition(0);
+                Serial.println("Fin Point Set");
+                TransmitCoords();
+            }
+        }
         else if (a == "POINT")
         {
             if (!Started)
@@ -303,8 +355,14 @@ void SerialRoutine()
         {
             if (!Started)
             {
-                stepper2.setAcceleration(Stepper2Acc);
-                stepper2.setMaxSpeed(Stepper2Speed_DEFAULT * 4);
+                if (LinearWelding==0){
+                    stepper2.setAcceleration(Stepper2Acc_Rotating);
+                    stepper2.setMaxSpeed(Stepper2Speed_Rotating * 4);
+                }
+                else {
+                    stepper2.setAcceleration(Stepper2Acc_Linear);
+                    stepper2.setMaxSpeed(Stepper2Speed_Linear * 4);
+                }
             }
             step2move = step2minMove;
         }
@@ -312,8 +370,14 @@ void SerialRoutine()
         {
             if (!Started)
             {
-                stepper2.setAcceleration(Stepper2Acc);
-                stepper2.setMaxSpeed(Stepper2Speed_DEFAULT * 4);
+                if (LinearWelding==0){
+                    stepper2.setAcceleration(Stepper2Acc_Rotating);
+                    stepper2.setMaxSpeed(Stepper2Speed_Rotating * 4);
+                }
+                else {
+                    stepper2.setAcceleration(Stepper2Acc_Linear);
+                    stepper2.setMaxSpeed(Stepper2Speed_Linear * 4);
+                }
             }
             step2move = -step2minMove;
         }
@@ -323,8 +387,14 @@ void SerialRoutine()
             {
                 if (!Started)
                 {
-                    stepper3.setAcceleration(Stepper2Acc);
-                    stepper3.setMaxSpeed(Stepper2Speed_DEFAULT * 4);
+                    if (LinearWelding==0){
+                        stepper3.setAcceleration(Stepper3Acc_Rotating);
+                        stepper3.setMaxSpeed(Stepper3Speed_Rotating * 4);
+                    }
+                    else {
+                        stepper3.setAcceleration(Stepper3Acc_Linear);
+                        stepper3.setMaxSpeed(Stepper3Speed_Linear * 4);
+                    }
                 }
                 step3move = step2minMove;
             }
@@ -335,8 +405,14 @@ void SerialRoutine()
             {
                 if (!Started)
                 {
-                    stepper3.setAcceleration(Stepper2Acc);
-                    stepper3.setMaxSpeed(Stepper2Speed_DEFAULT * 4);
+                    if (LinearWelding==0){
+                        stepper3.setAcceleration(Stepper3Acc_Rotating);
+                        stepper3.setMaxSpeed(Stepper3Speed_Rotating * 4);
+                    }
+                    else {
+                        stepper3.setAcceleration(Stepper3Acc_Linear);
+                        stepper3.setMaxSpeed(Stepper3Speed_Linear * 4);
+                    }
                 }
                 step3move = -step2minMove;
             }
@@ -363,8 +439,14 @@ void SerialRoutine()
         {
             if (!Started)
             {
-                stepper2.setAcceleration(Stepper2Acc);
-                stepper2.setMaxSpeed(Stepper2Speed_DEFAULT / 4);
+                if (LinearWelding==0){
+                    stepper2.setAcceleration(Stepper2Acc_Rotating);
+                    stepper2.setMaxSpeed(Stepper2Speed_Rotating / 4);
+                }
+                else {
+                    stepper2.setAcceleration(Stepper2Acc_Linear);
+                    stepper2.setMaxSpeed(Stepper2Speed_Linear / 4);
+                }
             }
             step2move = step2minMove;
         }
@@ -372,8 +454,14 @@ void SerialRoutine()
         {
             if (!Started)
             {
-                stepper2.setAcceleration(Stepper2Acc);
-                stepper2.setMaxSpeed(Stepper2Speed_DEFAULT / 4);
+                if (LinearWelding==0){
+                    stepper2.setAcceleration(Stepper2Acc_Rotating);
+                    stepper2.setMaxSpeed(Stepper2Speed_Rotating / 4);
+                }
+                else {
+                    stepper2.setAcceleration(Stepper2Acc_Linear);
+                    stepper2.setMaxSpeed(Stepper2Speed_Linear / 4);
+                }
             }
             step2move = -step2minMove;
         }
@@ -383,8 +471,14 @@ void SerialRoutine()
             {
                 if (!Started)
                 {
-                    stepper3.setAcceleration(Stepper2Acc);
-                    stepper3.setMaxSpeed(Stepper2Speed_DEFAULT / 4);
+                    if (LinearWelding==0){
+                        stepper3.setAcceleration(Stepper3Acc_Rotating);
+                        stepper3.setMaxSpeed(Stepper3Speed_Rotating / 4);
+                    }
+                    else {
+                        stepper3.setAcceleration(Stepper3Acc_Linear);
+                        stepper3.setMaxSpeed(Stepper3Speed_Linear / 4);
+                    }
                 }
                 step3move = step2minMove;
             }
@@ -395,8 +489,14 @@ void SerialRoutine()
             {
                 if (!Started)
                 {
-                    stepper3.setAcceleration(Stepper2Acc);
-                    stepper3.setMaxSpeed(Stepper2Speed_DEFAULT / 4);
+                    if (LinearWelding==0){
+                        stepper3.setAcceleration(Stepper3Acc_Rotating);
+                        stepper3.setMaxSpeed(Stepper3Speed_Rotating / 4);
+                    }
+                    else {
+                        stepper3.setAcceleration(Stepper3Acc_Linear);
+                        stepper3.setMaxSpeed(Stepper3Speed_Linear / 4);
+                    }
                 }
                 step3move = -step2minMove;
             }
@@ -520,8 +620,8 @@ void Uroutine(int Uroute)
                         stepper3.setAcceleration(Stepper3Acc);
                         stepper3.setMaxSpeed(Stepper3Speed);
                         stepper.move(deltaH * Zcompensation * step1mm);
-                        stepper2.move(deltaH * Ycompensation * step1mm);
-                        stepper3.move(deltaH * Xcompensation * step1mm);
+                        stepper2.move(deltaH * Ycompensation * step2grad);
+                        stepper3.move(deltaH * Xcompensation * step3mm);
                     }
                 }
             }
@@ -599,6 +699,10 @@ void WManage()
                         {
                             stepper.setMaxSpeed(StepperZPointSpeed);
                             stepper.setAcceleration(StepperZPointAcc);
+                            stepper2.setMaxSpeed(StepperYPointSpeed);
+                            stepper2.setAcceleration(StepperYPointAcc);
+                            stepper3.setMaxSpeed(StepperXPointSpeed);
+                            stepper3.setAcceleration(StepperXPointAcc);
                             // if (longDistance){
                             // long positions[2]; // Array of desired stepper positions
                             // positions[0] = 0;
@@ -646,11 +750,15 @@ void WManage()
                                 }
                             }
                             else{
-                                stepper2.move(Stepper2WeldStep * step2grad);
-                                stepper3.move(Stepper3WeldStep * step3mm);
                                 stepper.setMaxSpeed(StepperZPointSpeed);
                                 stepper.setAcceleration(StepperZPointAcc);
+                                stepper2.setMaxSpeed(StepperYPointSpeed);
+                                stepper2.setAcceleration(StepperYPointAcc);
+                                stepper3.setMaxSpeed(StepperXPointSpeed);
+                                stepper3.setAcceleration(StepperXPointAcc);
                                 stepper.move(StepperZWeldStep * step1mm);
+                                stepper2.move(Stepper2WeldStep * step2grad);
+                                stepper3.move(Stepper3WeldStep * step3mm);
                                 path = path + sqrt(pow(Stepper2WeldStep, 2) + pow(Stepper3WeldStep, 2) + pow(StepperZWeldStep, 2));
                             }
                         }
@@ -659,6 +767,7 @@ void WManage()
                 }
                 else
                 {
+                    stepper2.setMaxSpeed(WeldingSpeed * step2grad);
                     stepper2.move((long)(Stepper2WeldStep * step2grad));
                     steps++;
                     path = steps * Stepper2WeldStep;
@@ -670,10 +779,14 @@ void WManage()
                 //#ifdef DEBUG
                 
                 if(!longDistance){
-                    Serial.print("Steps : ");
-                    Serial.println(steps);
-                    Serial.print("Path : ");
-                    Serial.println(path);
+                    if (!(steps>lastStepN+1)){
+                        Serial.print("Steps : ");
+                        Serial.print(steps);
+                        Serial.print(" / ");
+                        Serial.println(lastStepN+1);
+                        Serial.print("Path : ");
+                        Serial.println(path);
+                    }
                 }
                 //#endif
             }
@@ -845,7 +958,7 @@ void StartBFunc(bool p)
             Move2Point = p;
             longDistance = false;
             LongDistanceReleConfirm = false;
-            EEPROM.get(ParAddr + 11 * ParAddrDelta, Utarget);
+            EEPROM.get(ParAddr + 8 * ParAddrDelta, Utarget);
             if (Utarget < 1)
             {
                 Utarget = 0;
@@ -866,8 +979,10 @@ void StartBFunc(bool p)
                 stepper.setMaxSpeed(StepperSpeed);
                 stepper2.setMaxSpeed(Stepper2Speed);
                 stepper2.setAcceleration(Stepper2Acc);
+                stepper3.setMaxSpeed(Stepper3Speed);
+                stepper3.setAcceleration(Stepper3Acc);
                 Stepper2WeldStep = StepperWeldStep;
-                Timings(Stepper2Acc, Stepper2Speed, Stepper2WeldStep, WManageT);
+                Timings(Stepper2Acc, WeldingSpeed*step2grad, Stepper2WeldStep, WManageT, step2grad);
                 Serial.println("TIG Start");
             }
             UcountAbs = -1;
@@ -898,14 +1013,18 @@ void SpeedAccSteps2PointCalc(bool launch)
     float a2 = coord2 / pointPath;
     float a3 = coord3 / pointPath;
     // float tPath=0;
-    StepperZPointSpeed = (float)Stepper2Speed * a / (float)step2grad * step1mm;
+    StepperZPointSpeed = WeldingSpeed * a  * step1mm;
     StepperZPointAcc = (float)Stepper2Acc * a / (float)step2grad * step1mm;
+    StepperYPointSpeed = WeldingSpeed * a2  * step2grad;
+    StepperYPointAcc = (float)Stepper2Acc * a2;
+    StepperXPointSpeed = WeldingSpeed * a3  * step3mm;
+    StepperXPointAcc = (float)Stepper2Acc * a3 / (float)step2grad * step3mm;
     stepper.setMaxSpeed(StepperZPointSpeed);
     if (launch) stepper.setAcceleration(StepperZPointAcc);
-    stepper2.setMaxSpeed((float)Stepper2Speed * a2);
-    if (launch) stepper2.setAcceleration((float)Stepper2Acc * a2);
-    stepper3.setMaxSpeed((float)Stepper2Speed * a3);
-    if (launch) stepper3.setAcceleration((float)Stepper2Acc * a3);
+    stepper2.setMaxSpeed(StepperYPointSpeed);
+    if (launch) stepper2.setAcceleration(StepperYPointAcc);
+    stepper3.setMaxSpeed(StepperXPointSpeed);
+    if (launch) stepper3.setAcceleration(StepperXPointAcc);
     if (StepperWeldStep == 0)
     {
         longDistance = true;
@@ -982,9 +1101,9 @@ void SpeedAccSteps2PointCalc(bool launch)
         // Timings((float)Stepper2Acc * a2, Stepper2Speed * a2, WManageTMultiStep);
         PulseDuration = 0;
         if (a2>a3)
-            ROTATING = int((float)step2grad * (float)(abs(Stepper2WeldStep)) / (float)(Stepper2Speed * a2) * 1000);
+            ROTATING = int((float)(abs(Stepper2WeldStep)) / (float)(WeldingSpeed * a2) * 1000);
         else
-            ROTATING = int((float)step2grad * (float)(abs(Stepper3WeldStep)) / (float)(Stepper2Speed * a3) * 1000);
+            ROTATING = int((float)(abs(Stepper3WeldStep)) / (float)(WeldingSpeed * a3) * 1000);
         CoolingDuration = ROTATING / WManageTMultiStep;
         RotatinDuration = (int)(ROTATING / WManageTMultiStep);
         RelePulseDuration = 0;
@@ -993,9 +1112,9 @@ void SpeedAccSteps2PointCalc(bool launch)
     {
         tickerWManager.interval(WManageT);
         if (a2>a3)
-            Timings((float)Stepper2Acc * a2, Stepper2Speed * a2, Stepper2WeldStep, WManageT);
+            Timings((float)Stepper2Acc * a2, (float)WeldingSpeed * a2  * step2grad, Stepper2WeldStep, WManageT, step2grad);
         else
-            Timings((float)Stepper2Acc * a3, Stepper2Speed * a3, Stepper3WeldStep, WManageT);
+            Timings((float)Stepper3Acc * a3, (float)WeldingSpeed * a3  * step3mm, Stepper3WeldStep, WManageT, step3mm);
     }
 
     /*Serial.print("LasststepN=");
@@ -1113,59 +1232,57 @@ void LoadPars()
                 NPulses = 10000;
             break;
         case 8:
-            EEPROM.get(ParAddr + i * ParAddrDelta, step2grad);
-            if (step2grad < 0)
-                step2grad = step2grad_DEFAULT;
-            break;
-        case 9:
-            EEPROM.get(ParAddr + i * ParAddrDelta, Stepper2Acc);
-            if (Stepper2Acc < 0)
-                Stepper2Acc = Stepper2Acc_DEFAULT;
-            break;
-        case 10:
-            EEPROM.get(ParAddr + i * ParAddrDelta, Stepper2Speed);
-            if (Stepper2Speed < 0)
-                Stepper2Speed = Stepper2Speed_DEFAULT;
-            break;
-        case 11:
             EEPROM.get(ParAddr + i * ParAddrDelta, Utarget);
             if (Utarget < 1)
                 Utarget = 0;
             break;
-        case 12:
+        case 9:
             EEPROM.get(ParAddr + i * ParAddrDelta, LinearWelding);
-            if (LinearWelding != 0) {
+            if (LinearWelding == 0) {
+                step3mm = step3mm_Rotating;
+                Stepper3Acc = Stepper3Acc_Rotating;
+                Stepper3Speed = Stepper3Speed_Rotating;
+
+                step2grad = step2grad_Rotating;
+                Stepper2Acc = Stepper2Acc_Rotating;
+                Stepper2Speed = Stepper2Speed_Rotating;
+            }
+            else {
                 LinearWelding = 1;
                 step3mm = step3mm_Linear;
                 Stepper3Acc = Stepper3Acc_Linear;
                 Stepper3Speed = Stepper3Speed_Linear;
-            }
-            else {
-                step3mm = step3mm_Rotating;
-                Stepper3Acc = Stepper3Acc_Rotating;
-                Stepper3Speed = Stepper3Speed_Rotating;
+
+                step2grad = step2grad_Linear;
+                Stepper2Acc = Stepper2Acc_Linear;
+                Stepper2Speed = Stepper2Speed_Linear;
             }
             break;
-        case 13:
+        case 10:
             EEPROM.get(ParAddr + i * ParAddrDelta, Xcompensation);
             if (Xcompensation > 1)
                 Xcompensation = 1;
             if (Xcompensation < -1)
                 Xcompensation = -1;
             break;
-         case 14:
+        case 11:
             EEPROM.get(ParAddr + i * ParAddrDelta, Ycompensation);
             if (Ycompensation > 1)
                 Ycompensation = 1;
             if (Ycompensation < -1)
                 Ycompensation = -1;
             break;
-         case 15:
+        case 12:
             EEPROM.get(ParAddr + i * ParAddrDelta, Zcompensation);
             if (Zcompensation > 1)
                 Zcompensation = 1;
             if (Zcompensation < -1)
                 Zcompensation = -1;
+            break;
+        case 13:
+            EEPROM.get(ParAddr + i * ParAddrDelta, WeldingSpeed);
+            if (WeldingSpeed == 0)
+                WeldingSpeed = (float)Stepper2Speed / (float)step2grad;
             break;
         default:
             break;
@@ -1175,7 +1292,7 @@ void LoadPars()
         EEPROM.get(CoordAddr + 2 * ParAddrDelta, initZ);
     }
 
-    Timings(Stepper2Acc, Stepper2Speed, Stepper2WeldStep, WManageT);
+    Timings(Stepper2Acc, WeldingSpeed*step2grad, Stepper2WeldStep, WManageT, step2grad);
 
     if (!(WeldPerm == 1))
         ZPerm = 0;
@@ -1183,10 +1300,10 @@ void LoadPars()
         ProbeDone = true;
 }
 
-void Timings(float realstepper2acc, int realstepper2speed, float WStep, int WM)
+void Timings(float realstepper2acc, int realstepper2speed, float WStep, int WM, int stepmm)
 {
     PulseDuration = (int)((PULSE + SparkDuration + NoSparkPause) / WM);
-    ROTATING = int((float)realstepper2speed / (float)realstepper2acc * 1000 + (float)step2grad * (float)(abs(WStep)) / (float)realstepper2speed * 1000) + 300;
+    ROTATING = int((float)realstepper2speed / (float)realstepper2acc * 1000 + (float)stepmm * (float)(abs(WStep)) / (float)realstepper2speed * 1000) + 300;
     CoolingDuration = (int)((COOLING + ROTATING) / WM);
     RotatinDuration = (int)(ROTATING / WM);
     RelePulseDuration = (int)((PULSE) / WM);
