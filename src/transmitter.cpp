@@ -69,7 +69,10 @@ float initX = 0;
 float initY = 0;
 float initZ = 0;
 
-String SerialString = "";
+//String SerialString = "";
+char SerialStr[100]="";
+char a[100]="";
+unsigned int SerialStrLen=0;
 
 AccelStepper stepper(AccelStepper::DRIVER, StepOut, DirOut);
 AccelStepper stepper2(AccelStepper::DRIVER, StepOut2, DirOut2);
@@ -222,46 +225,70 @@ void transmitterLoop()
 
 void SerialRoutine()
 {
-    char inb = 0;
-    String a = "";
+    char inb[2];
+    //String a = "";
+    strcpy(a, "");
+    unsigned int aLen=0;
+    inb[1] = 0;
     while (Serial.available() > 0)
     {
-        inb = Serial.read();
-        if (inb != '*')
+        inb[0] = Serial.read();
+        if (inb[0] != '*')
         {
-            SerialString = String(SerialString + String(inb));
+            //SerialString = SerialString + inb;
+            strcat(SerialStr, inb);
+            SerialStrLen++;
         }
         else
         {
-            a = SerialString;
-            SerialString = "";
+            //a = SerialString;
+            //SerialString = "";
+            strcpy(a, SerialStr);
+            strcpy(SerialStr, "");
+            aLen=SerialStrLen;
+            SerialStrLen=0;
         }
     }
     
-    if (a=="") return;
-    //else Serial.println(a);
+    if (aLen==0) {
+        //if (SerialStrLen>0) Serial.println(SerialStr);
+        return;
+    }
+    else {
+        //Serial.println(a);
+        //Serial.println(aLen);
+    }
 
-    String pars[ParCount];
+    char pars[ParCount+1][10];
+    char temp[2];
+    temp[1]='\0';
     unsigned int i = 0;
     unsigned int index = 0;
 
-    if (a.length() > CommandSerialLength)
+    if (aLen > CommandSerialLength)
     {
-        pars[0]="";
-        for (i = 0; i < a.length(); i++){
+        strcpy(pars[0],"");
+        Serial.println(aLen);
+        for (i = 0; i < aLen; i++){
             if (a[i]==';') {
-                //Serial.println("par=");
-                //Serial.print(pars[index]);
+                /*Serial.print("pars[");
+                Serial.print(index);
+                Serial.println("] = ");
+                Serial.println(pars[index]);
+                Serial.println(aLen);
+                delay(500);*/
                 index++;
-                pars[index]="";
+                strcpy(pars[index],"");
             }
             else {
                 //Serial.println((int)(a[i]));
-                pars[index] = String(pars[index] + String(a[i]));
+                temp[0] = a[i];
+                strcat(pars[index], temp);
             }
         }
-        //Serial.print("finIndex=");
+        //Serial.print("index=");
         //Serial.println(index);
+        //delay(300);
         if (index<ParCount) return;
         for (i = 0; i < ParCount; i++)
         {
@@ -274,7 +301,7 @@ void SerialRoutine()
             case 6:
             case 7:
             case 9:
-                EEPROM.put(ParAddr + i * ParAddrDelta, pars[i].toInt());
+                EEPROM.put(ParAddr + i * ParAddrDelta, atol(pars[i]));
                 break;
             case 2:
             case 3:
@@ -282,40 +309,41 @@ void SerialRoutine()
             case 10:
             case 11:
             case 12:
-                EEPROM.put(ParAddr + i * ParAddrDelta, pars[i].toFloat());
+                EEPROM.put(ParAddr + i * ParAddrDelta, atof(pars[i]));
                 break;
             case 13:
-                EEPROM.put(ParAddr + i * ParAddrDelta, (float)(pars[i].toFloat() / (float)1000));
+                EEPROM.put(ParAddr + i * ParAddrDelta, (float)(atof(pars[i]) / (float)1000));
                 break;
             default:
                 break;
             }
         }
         //return;
+        delay(100);
         resetFunc();
     }
-    else if (a.length() > MinSerialLength)
+    else if (aLen > MinSerialLength)
     {
-        if (a == "PROBE")
+        if (strcmp(a, "PROBE")==0)
         {
             if (!Started)
                 ProbeBFunc();
         }
-        else if (a == "START")
+        else if (strcmp(a, "START")==0)
         {
             if (!Started)
                 StartBFunc(false);
         }
-        else if (a == "STARP")
+        else if (strcmp(a, "STARP")==0)
         {
             if (!Started)
                 StartBFunc(true);
         }
-        else if (a == "STOP")
+        else if (strcmp(a, "STOP")==0)
         {
             StopBFunc();
         }
-        else if (a == "Y360")
+        else if (strcmp(a, "Y360")==0)
         {
             if (!Started)
             {
@@ -327,7 +355,7 @@ void SerialRoutine()
                 TransmitCoords();
             }
         }
-        else if (a == "Y-360")
+        else if (strcmp(a, "Y-360")==0)
         {
             if (!Started)
             {
@@ -339,7 +367,7 @@ void SerialRoutine()
                 TransmitCoords();
             }
         }
-        else if (a == "POINT")
+        else if (strcmp(a, "POINT")==0)
         {
             if (!Started)
             {
@@ -351,7 +379,7 @@ void SerialRoutine()
                 TransmitCoords();
             }
         }
-        else if (a == "RIGHT")
+        else if (strcmp(a, "RIGHT")==0)
         {
             if (!Started)
             {
@@ -366,7 +394,7 @@ void SerialRoutine()
             }
             step2move = step2minMove;
         }
-        else if (a == "LEFT")
+        else if (strcmp(a, "LEFT")==0)
         {
             if (!Started)
             {
@@ -381,7 +409,7 @@ void SerialRoutine()
             }
             step2move = -step2minMove;
         }
-        else if (a == "Y+")
+        else if (strcmp(a, "Y+")==0)
         {
             if (XPerm > 0)
             {
@@ -399,7 +427,7 @@ void SerialRoutine()
                 step3move = step2minMove;
             }
         }
-        else if (a == "Y-")
+        else if (strcmp(a, "Y-")==0)
         {
             if (XPerm > 0)
             {
@@ -417,7 +445,7 @@ void SerialRoutine()
                 step3move = -step2minMove;
             }
         }
-        else if (a == "UP")
+        else if (strcmp(a, "UP")==0)
         {
             if (!Started)
             {
@@ -426,7 +454,7 @@ void SerialRoutine()
             }
             stepmove = stepminMove;
         }
-        else if (a == "DOWN")
+        else if (strcmp(a, "DOWN")==0)
         {
             if (!Started)
             {
@@ -435,7 +463,7 @@ void SerialRoutine()
             }
             stepmove = -stepminMove;
         }
-        else if (a == "RIGHTS")
+        else if (strcmp(a, "RIGHTS")==0)
         {
             if (!Started)
             {
@@ -450,7 +478,7 @@ void SerialRoutine()
             }
             step2move = step2minMove;
         }
-        else if (a == "LEFTS")
+        else if (strcmp(a, "LEFTS")==0)
         {
             if (!Started)
             {
@@ -465,7 +493,7 @@ void SerialRoutine()
             }
             step2move = -step2minMove;
         }
-        else if (a == "Y+S")
+        else if (strcmp(a, "Y+S")==0)
         {
             if (XPerm > 0)
             {
@@ -483,7 +511,7 @@ void SerialRoutine()
                 step3move = step2minMove;
             }
         }
-        else if (a == "Y-S")
+        else if (strcmp(a, "Y-S")==0)
         {
             if (XPerm > 0)
             {
@@ -501,7 +529,7 @@ void SerialRoutine()
                 step3move = -step2minMove;
             }
         }
-        else if (a == "UPS")
+        else if (strcmp(a, "UPS")==0)
         {
             if (!Started)
             {
@@ -510,7 +538,7 @@ void SerialRoutine()
             }
             stepmove = stepminMove;
         }
-        else if (a == "DOWNS")
+        else if (strcmp(a, "DOWNS")==0)
         {
             if (!Started)
             {
@@ -519,26 +547,26 @@ void SerialRoutine()
             }
             stepmove = -stepminMove;
         }
-        else if (a == "UT+")
+        else if (strcmp(a, "UT+")==0)
         {
             Utarget += 0.1;
             Serial.print("Utarget:");
             Serial.println(Utarget);
         }
-        else if (a == "UT-")
+        else if (strcmp(a, "UT-")==0)
         {
             Utarget -= 0.1;
             Serial.print("Utarget:");
             Serial.println(Utarget);
         }
-        else if (a == "SAVE")
+        else if (strcmp(a, "SAVE")==0)
         {
             EEPROM.put(CoordAddr + 0 * ParAddrDelta, (float)stepper3.currentPosition());
             EEPROM.put(CoordAddr + 1 * ParAddrDelta, (float)stepper2.currentPosition());
             EEPROM.put(CoordAddr + 2 * ParAddrDelta, (float)stepper.currentPosition());
             Serial.println("Coords Saved:");
         }
-        else if (a == "WELD")
+        else if (strcmp(a, "WELD")==0)
         {
             if (WeldPerm==2) RepeatMessageStart(TigStartCom);
             if (WeldPerm==1) RadioSendRepeat(TigPointT);
@@ -779,11 +807,18 @@ void WManage()
                 //#ifdef DEBUG
                 
                 if(!longDistance){
-                    if (!(steps>lastStepN+1)){
+                    int maxStep=0;
+                    if (Move2Point){
+                        maxStep=lastStepN+1;
+                    }
+                    else{
+                        maxStep=NPulses;
+                    }
+                    if (!(steps>maxStep)){
                         Serial.print("Steps : ");
                         Serial.print(steps);
                         Serial.print(" / ");
-                        Serial.println(lastStepN+1);
+                        Serial.println(maxStep);
                         Serial.print("Path : ");
                         Serial.println(path);
                     }
