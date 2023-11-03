@@ -18,6 +18,7 @@ bool RepeatMessageStopBool();
 void SerialRoutine();
 void stepperMoves();
 int SetupTransmitter();
+void initTransmitter();
 void transmitterLoop();
 void Blinker();
 void LoadPars();

@@ -1,7 +1,7 @@
 #include <EEPROM.h>
 #include "utils.h"
 
-int LinearWelding=0;
+int LinearWelding=1;
 float Zcompensation=1;
 float Ycompensation=0;
 float Xcompensation=0;
@@ -24,8 +24,8 @@ int WaitUcounter = 0;
 int CoolingCounter = 0;
 float path = 0;
 int steps = 0;
-int PULSE = 0;
-int COOLING = 0;
+int PULSE = PULSE_DEFAULT;
+int COOLING = COOLING_DEFAULT;
 int PulseDuration = 0;
 int RelePulseDuration = 0;
 int CoolingDuration = 0;
@@ -37,7 +37,7 @@ int Stepper3Speed = 0;
 int Stepper3Acc = 0;
 int step3mm = 0;
 
-float WeldingSpeed = 0;
+float WeldingSpeed = (float)Stepper2Speed_Linear / (float)step2grad_Linear;
 
 float StepperZPointSpeed = 0;
 float StepperZPointAcc = 0;
@@ -46,18 +46,18 @@ float StepperYPointAcc = 0;
 float StepperXPointSpeed = 0;
 float StepperXPointAcc = 0;
 float StepperWeldStep = 0;
-float Stepper2WeldStep = 0;
+float Stepper2WeldStep = Stepper2WeldStep_DEFAULT;
 float Stepper3WeldStep = 0;
 float StepperZWeldStep = 0;
 float Stepper2LastStep = 0;
 float Stepper3LastStep = 0;
 float StepperZLastStep = 0;
 int lastStepN = 0;
-float TigHeight = 0;
+float TigHeight = TigHeight_DEFAULT;
 int WeldPerm = 0;
 bool LongDistanceReleConfirm=false;
 int ZPerm = 0;
-int XPerm = 0;
+int XPerm = 1;
 int NPulses = 0;
 int ROTATING = 0;
 int killme = 0;
@@ -70,16 +70,17 @@ float initY = 0;
 float initZ = 0;
 
 //String SerialString = "";
-char SerialStr[100]="";
-char a[100]="";
+char SerialStr[70]="";
+char a[70]="";
+char pars[ParCount+1][10];
 unsigned int SerialStrLen=0;
 
 AccelStepper stepper(AccelStepper::DRIVER, StepOut, DirOut);
 AccelStepper stepper2(AccelStepper::DRIVER, StepOut2, DirOut2);
 AccelStepper stepper3(AccelStepper::DRIVER, StepOut3, DirOut3);
-OneButton ProbeB(ProbeBtn, false);
-OneButton StartB(StartBtn, false);
-Ticker tickerBlink(Blinker, BlinkMeasure, 0, MILLIS);
+//OneButton ProbeB(ProbeBtn, false);
+//OneButton StartB(StartBtn, false);
+//Ticker tickerBlink(Blinker, BlinkMeasure, 0, MILLIS);
 Ticker tickerWManager(WManage, WManageT, 0, MILLIS);
 
 // MultiStepper steppers;
@@ -89,6 +90,7 @@ void (*resetFunc)(void) = 0;
 int SetupTransmitter()
 {
     LoadPars();
+    initTransmitter();
 
     pinMode(StepOut, OUTPUT);
     pinMode(DirOut, OUTPUT);
@@ -96,18 +98,18 @@ int SetupTransmitter()
     pinMode(DirOut2, OUTPUT);
     pinMode(StepOut3, OUTPUT);
     pinMode(DirOut3, OUTPUT);
-    pinMode(ProbeBtn, INPUT);
-    pinMode(StartBtn, INPUT);
+    //pinMode(ProbeBtn, INPUT);
+    //pinMode(StartBtn, INPUT);
     pinMode(LedOut, OUTPUT);
     digitalWrite(LedOut, LOW);
     pinMode(ReleOut, OUTPUT);
     digitalWrite(ReleOut, LOW);
 
-    ProbeB.setPressTicks(BtnPressTicks);
-    ProbeB.attachLongPressStart(ProbeBFunc);
+    //ProbeB.setPressTicks(BtnPressTicks);
+    //ProbeB.attachLongPressStart(ProbeBFunc);
 
-    StartB.setPressTicks(BtnPressTicks);
-    StartB.attachLongPressStart(StartBSwitch);
+    //StartB.setPressTicks(BtnPressTicks);
+    //StartB.attachLongPressStart(StartBSwitch);
 
     stepper.setPinsInverted(false, false);
     stepper.setMaxSpeed(StepperSpeed);
@@ -128,7 +130,7 @@ int SetupTransmitter()
     // steppers.addStepper(stepper2);
     // steppers.addStepper(stepper3);
 
-    tickerBlink.start();
+    //tickerBlink.start();
     tickerWManager.start();
 
     stepper.move(InitMoveMM * step1mm);
@@ -225,19 +227,19 @@ void transmitterLoop()
 
 void SerialRoutine()
 {
-    char inb[2];
+    char inb;
     //String a = "";
     strcpy(a, "");
     unsigned int aLen=0;
-    inb[1] = 0;
     while (Serial.available() > 0)
     {
-        inb[0] = Serial.read();
-        if (inb[0] != '*')
+        inb = Serial.read();
+        if (inb != '*')
         {
             //SerialString = SerialString + inb;
-            strcat(SerialStr, inb);
+            SerialStr[SerialStrLen] = inb;
             SerialStrLen++;
+            SerialStr[SerialStrLen] = '\0';
         }
         else
         {
@@ -259,7 +261,7 @@ void SerialRoutine()
         //Serial.println(aLen);
     }
 
-    char pars[ParCount+1][10];
+    
     char temp[2];
     temp[1]='\0';
     unsigned int i = 0;
@@ -1220,6 +1222,30 @@ void Blinker()
 #endif
 }
 
+void initTransmitter(){
+    StepperWeldStep = Stepper2WeldStep;
+    if (LinearWelding == 0) {
+        step3mm = step3mm_Rotating;
+        Stepper3Acc = Stepper3Acc_Rotating;
+        Stepper3Speed = Stepper3Speed_Rotating;
+
+        step2grad = step2grad_Rotating;
+        Stepper2Acc = Stepper2Acc_Rotating;
+        Stepper2Speed = Stepper2Speed_Rotating;
+    }
+    else {
+        LinearWelding = 1;
+        step3mm = step3mm_Linear;
+        Stepper3Acc = Stepper3Acc_Linear;
+        Stepper3Speed = Stepper3Speed_Linear;
+
+        step2grad = step2grad_Linear;
+        Stepper2Acc = Stepper2Acc_Linear;
+        Stepper2Speed = Stepper2Speed_Linear;
+    }
+            
+}
+
 void LoadPars()
 {
     int i = 0;
@@ -1239,7 +1265,6 @@ void LoadPars()
             break;
         case 2:
             EEPROM.get(ParAddr + i * ParAddrDelta, Stepper2WeldStep);
-            StepperWeldStep = Stepper2WeldStep;
             break;
         case 3:
             EEPROM.get(ParAddr + i * ParAddrDelta, TigHeight);
@@ -1273,25 +1298,8 @@ void LoadPars()
             break;
         case 9:
             EEPROM.get(ParAddr + i * ParAddrDelta, LinearWelding);
-            if (LinearWelding == 0) {
-                step3mm = step3mm_Rotating;
-                Stepper3Acc = Stepper3Acc_Rotating;
-                Stepper3Speed = Stepper3Speed_Rotating;
-
-                step2grad = step2grad_Rotating;
-                Stepper2Acc = Stepper2Acc_Rotating;
-                Stepper2Speed = Stepper2Speed_Rotating;
-            }
-            else {
-                LinearWelding = 1;
-                step3mm = step3mm_Linear;
-                Stepper3Acc = Stepper3Acc_Linear;
-                Stepper3Speed = Stepper3Speed_Linear;
-
-                step2grad = step2grad_Linear;
-                Stepper2Acc = Stepper2Acc_Linear;
-                Stepper2Speed = Stepper2Speed_Linear;
-            }
+                if (LinearWelding!=0)
+                    LinearWelding=1;
             break;
         case 10:
             EEPROM.get(ParAddr + i * ParAddrDelta, Xcompensation);
