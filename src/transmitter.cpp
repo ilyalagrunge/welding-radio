@@ -71,7 +71,6 @@ float initZ = 0;
 
 //String SerialString = "";
 char SerialStr[70]="";
-char a[70]="";
 char pars[ParCount+1][10];
 unsigned int SerialStrLen=0;
 
@@ -133,9 +132,9 @@ int SetupTransmitter()
     //tickerBlink.start();
     tickerWManager.start();
 
-    stepper.move(InitMoveMM * step1mm);
-    stepper2.move(InitMoveMM2 * step2grad);
-    stepper3.move(InitMoveMM3 * step3mm);
+    //stepper.move(InitMoveMM * step1mm);
+    //stepper2.move(InitMoveMM2 * step2grad);
+    //stepper3.move(InitMoveMM3 * step3mm);
 
     Serial.println("TRANSMITTER");
     
@@ -227,11 +226,9 @@ void transmitterLoop()
 
 void SerialRoutine()
 {
-    char inb;
+    char inb = '\0';
     //String a = "";
-    strcpy(a, "");
-    unsigned int aLen=0;
-    while (Serial.available() > 0)
+    while ((Serial.available() > 0) && (inb!='*'))
     {
         inb = Serial.read();
         if (inb != '*')
@@ -243,336 +240,337 @@ void SerialRoutine()
         }
         else
         {
-            //a = SerialString;
-            //SerialString = "";
-            strcpy(a, SerialStr);
-            strcpy(SerialStr, "");
-            aLen=SerialStrLen;
-            SerialStrLen=0;
+            
         }
     }
-    
-    if (aLen==0) {
-        //if (SerialStrLen>0) Serial.println(SerialStr);
+ 
+    /*if (aLen==0) {
+        if (SerialStrLen>0) Serial.println(SerialStr);
         return;
     }
     else {
         //Serial.println(a);
         //Serial.println(aLen);
-    }
+    }*/
 
-    
-    char temp[2];
-    temp[1]='\0';
-    unsigned int i = 0;
-    unsigned int index = 0;
+    if (inb=='*'){
+        char temp[2];
+        temp[1]='\0';
+        unsigned int i = 0;
+        unsigned int index = 0;
 
-    if (aLen > CommandSerialLength)
-    {
-        strcpy(pars[0],"");
-        Serial.println(aLen);
-        for (i = 0; i < aLen; i++){
-            if (a[i]==';') {
-                /*Serial.print("pars[");
-                Serial.print(index);
-                Serial.println("] = ");
-                Serial.println(pars[index]);
-                Serial.println(aLen);
-                delay(500);*/
-                index++;
-                strcpy(pars[index],"");
-            }
-            else {
-                //Serial.println((int)(a[i]));
-                temp[0] = a[i];
-                strcat(pars[index], temp);
-            }
-        }
-        //Serial.print("index=");
-        //Serial.println(index);
-        //delay(300);
-        if (index<ParCount) return;
-        for (i = 0; i < ParCount; i++)
+        if (SerialStrLen > CommandSerialLength)
         {
-            switch (i)
+            strcpy(pars[0],"");
+            for (i = 0; i < SerialStrLen; i++){
+                if (SerialStr[i]==';') {
+                    /*Serial.print("pars[");
+                    Serial.print(index);
+                    Serial.println("] = ");
+                    Serial.println(pars[index]);
+                    Serial.println(aLen);
+                    delay(500);*/
+                    index++;
+                    strcpy(pars[index],"");
+                }
+                else {
+                    //Serial.println((int)(a[i]));
+                    temp[0] = SerialStr[i];
+                    strcat(pars[index], temp);
+                }
+            }
+            //Serial.print("index=");
+            //Serial.println(index);
+            //delay(300);
+            if (index<ParCount) return;
+            for (i = 0; i < ParCount; i++)
             {
-            case 0:
-            case 1:
-            case 4:
-            case 5:
-            case 6:
-            case 7:
-            case 9:
-                EEPROM.put(ParAddr + i * ParAddrDelta, atol(pars[i]));
-                break;
-            case 2:
-            case 3:
-            case 8:
-            case 10:
-            case 11:
-            case 12:
-                EEPROM.put(ParAddr + i * ParAddrDelta, atof(pars[i]));
-                break;
-            case 13:
-                EEPROM.put(ParAddr + i * ParAddrDelta, (float)(atof(pars[i]) / (float)1000));
-                break;
-            default:
-                break;
+                switch (i)
+                {
+                case 0:
+                case 1:
+                case 4:
+                case 5:
+                case 6:
+                case 7:
+                case 9:
+                    EEPROM.put(ParAddr + i * ParAddrDelta, atol(pars[i]));
+                    break;
+                case 2:
+                case 3:
+                case 8:
+                case 10:
+                case 11:
+                case 12:
+                    EEPROM.put(ParAddr + i * ParAddrDelta, atof(pars[i]));
+                    break;
+                case 13:
+                    EEPROM.put(ParAddr + i * ParAddrDelta, (float)(atof(pars[i]) / (float)1000));
+                    break;
+                default:
+                    break;
+                }
+            }
+            //return;
+            delay(100);
+            resetFunc();
+        }
+        else if (SerialStrLen > MinSerialLength)
+        {
+            if (strcmp(SerialStr, "PROBE")==0)
+            {
+                if (!Started)
+                    ProbeBFunc();
+            }
+            else if (strcmp(SerialStr, "START")==0)
+            {
+                if (!Started)
+                    StartBFunc(false);
+            }
+            else if (strcmp(SerialStr, "STARP")==0)
+            {
+                if (!Started)
+                    StartBFunc(true);
+            }
+            else if (strcmp(SerialStr, "STOP")==0)
+            {
+                StopBFunc();
+            }
+            else if (strcmp(SerialStr, "Y360")==0)
+            {
+                if (!Started)
+                {
+                    FinPoint = true;
+                    stepper.setCurrentPosition(0);
+                    stepper2.setCurrentPosition((long)360*(long)step2grad);
+                    stepper3.setCurrentPosition(0);
+                    Serial.println("Fin Point Set");
+                    TransmitCoords();
+                }
+            }
+            else if (strcmp(SerialStr, "Y-360")==0)
+            {
+                if (!Started)
+                {
+                    FinPoint = true;
+                    stepper.setCurrentPosition(0);
+                    stepper2.setCurrentPosition((long)-360*(long)step2grad);
+                    stepper3.setCurrentPosition(0);
+                    Serial.println("Fin Point Set");
+                    TransmitCoords();
+                }
+            }
+            else if (strcmp(SerialStr, "POINT")==0)
+            {
+                if (!Started)
+                {
+                    FinPoint = true;
+                    stepper.setCurrentPosition(0);
+                    stepper2.setCurrentPosition(0);
+                    stepper3.setCurrentPosition(0);
+                    Serial.println("Fin Point Set");
+                    TransmitCoords();
+                }
+            }
+            else if (strcmp(SerialStr, "RIGHT")==0)
+            {
+                if (!Started)
+                {
+                    if (LinearWelding==0){
+                        stepper2.setAcceleration(Stepper2Acc_Rotating);
+                        stepper2.setMaxSpeed(Stepper2Speed_Rotating * 4);
+                    }
+                    else {
+                        stepper2.setAcceleration(Stepper2Acc_Linear);
+                        stepper2.setMaxSpeed(Stepper2Speed_Linear * 4);
+                    }
+                }
+                step2move = step2minMove;
+            }
+            else if (strcmp(SerialStr, "LEFT")==0)
+            {
+                if (!Started)
+                {
+                    if (LinearWelding==0){
+                        stepper2.setAcceleration(Stepper2Acc_Rotating);
+                        stepper2.setMaxSpeed(Stepper2Speed_Rotating * 4);
+                    }
+                    else {
+                        stepper2.setAcceleration(Stepper2Acc_Linear);
+                        stepper2.setMaxSpeed(Stepper2Speed_Linear * 4);
+                    }
+                }
+                step2move = -step2minMove;
+            }
+            else if (strcmp(SerialStr, "Y+")==0)
+            {
+                if (XPerm > 0)
+                {
+                    if (!Started)
+                    {
+                        if (LinearWelding==0){
+                            stepper3.setAcceleration(Stepper3Acc_Rotating);
+                            stepper3.setMaxSpeed(Stepper3Speed_Rotating * 4);
+                        }
+                        else {
+                            stepper3.setAcceleration(Stepper3Acc_Linear);
+                            stepper3.setMaxSpeed(Stepper3Speed_Linear * 4);
+                        }
+                    }
+                    step3move = step2minMove;
+                }
+            }
+            else if (strcmp(SerialStr, "Y-")==0)
+            {
+                if (XPerm > 0)
+                {
+                    if (!Started)
+                    {
+                        if (LinearWelding==0){
+                            stepper3.setAcceleration(Stepper3Acc_Rotating);
+                            stepper3.setMaxSpeed(Stepper3Speed_Rotating * 4);
+                        }
+                        else {
+                            stepper3.setAcceleration(Stepper3Acc_Linear);
+                            stepper3.setMaxSpeed(Stepper3Speed_Linear * 4);
+                        }
+                    }
+                    step3move = -step2minMove;
+                }
+            }
+            else if (strcmp(SerialStr, "UP")==0)
+            {
+                if (!Started)
+                {
+                    stepper.setAcceleration(StepperAcc);
+                    stepper.setMaxSpeed(StepperSpeed * 4);
+                }
+                stepmove = stepminMove;
+            }
+            else if (strcmp(SerialStr, "DOWN")==0)
+            {
+                if (!Started)
+                {
+                    stepper.setAcceleration(StepperAcc);
+                    stepper.setMaxSpeed(StepperSpeed * 4);
+                }
+                stepmove = -stepminMove;
+            }
+            else if (strcmp(SerialStr, "RIGHTS")==0)
+            {
+                if (!Started)
+                {
+                    if (LinearWelding==0){
+                        stepper2.setAcceleration(Stepper2Acc_Rotating);
+                        stepper2.setMaxSpeed(Stepper2Speed_Rotating / 4);
+                    }
+                    else {
+                        stepper2.setAcceleration(Stepper2Acc_Linear);
+                        stepper2.setMaxSpeed(Stepper2Speed_Linear / 4);
+                    }
+                }
+                step2move = step2minMove;
+            }
+            else if (strcmp(SerialStr, "LEFTS")==0)
+            {
+                if (!Started)
+                {
+                    if (LinearWelding==0){
+                        stepper2.setAcceleration(Stepper2Acc_Rotating);
+                        stepper2.setMaxSpeed(Stepper2Speed_Rotating / 4);
+                    }
+                    else {
+                        stepper2.setAcceleration(Stepper2Acc_Linear);
+                        stepper2.setMaxSpeed(Stepper2Speed_Linear / 4);
+                    }
+                }
+                step2move = -step2minMove;
+            }
+            else if (strcmp(SerialStr, "Y+S")==0)
+            {
+                if (XPerm > 0)
+                {
+                    if (!Started)
+                    {
+                        if (LinearWelding==0){
+                            stepper3.setAcceleration(Stepper3Acc_Rotating);
+                            stepper3.setMaxSpeed(Stepper3Speed_Rotating / 4);
+                        }
+                        else {
+                            stepper3.setAcceleration(Stepper3Acc_Linear);
+                            stepper3.setMaxSpeed(Stepper3Speed_Linear / 4);
+                        }
+                    }
+                    step3move = step2minMove;
+                }
+            }
+            else if (strcmp(SerialStr, "Y-S")==0)
+            {
+                if (XPerm > 0)
+                {
+                    if (!Started)
+                    {
+                        if (LinearWelding==0){
+                            stepper3.setAcceleration(Stepper3Acc_Rotating);
+                            stepper3.setMaxSpeed(Stepper3Speed_Rotating / 4);
+                        }
+                        else {
+                            stepper3.setAcceleration(Stepper3Acc_Linear);
+                            stepper3.setMaxSpeed(Stepper3Speed_Linear / 4);
+                        }
+                    }
+                    step3move = -step2minMove;
+                }
+            }
+            else if (strcmp(SerialStr, "UPS")==0)
+            {
+                if (!Started)
+                {
+                    stepper.setAcceleration(StepperAcc);
+                    stepper.setMaxSpeed(StepperSpeed / 4);
+                }
+                stepmove = stepminMove;
+            }
+            else if (strcmp(SerialStr, "DOWNS")==0)
+            {
+                if (!Started)
+                {
+                    stepper.setAcceleration(StepperAcc);
+                    stepper.setMaxSpeed(StepperSpeed / 4);
+                }
+                stepmove = -stepminMove;
+            }
+            else if (strcmp(SerialStr, "UT+")==0)
+            {
+                Utarget += 0.1;
+                Serial.print("Utarget:");
+                Serial.println(Utarget);
+            }
+            else if (strcmp(SerialStr, "UT-")==0)
+            {
+                Utarget -= 0.1;
+                Serial.print("Utarget:");
+                Serial.println(Utarget);
+            }
+            else if (strcmp(SerialStr, "SAVE")==0)
+            {
+                EEPROM.put(CoordAddr + 0 * ParAddrDelta, (float)stepper3.currentPosition());
+                EEPROM.put(CoordAddr + 1 * ParAddrDelta, (float)stepper2.currentPosition());
+                EEPROM.put(CoordAddr + 2 * ParAddrDelta, (float)stepper.currentPosition());
+                Serial.println("Coords Saved:");
+            }
+            else if (strcmp(SerialStr, "WELD")==0)
+            {
+                if (WeldPerm==2) RepeatMessageStart(TigStartCom);
+                if (WeldPerm==1) RadioSendRepeat(TigPointT);
             }
         }
-        //return;
-        delay(100);
-        resetFunc();
+
+        strcpy(SerialStr, "");
+        SerialStrLen=0;
     }
-    else if (aLen > MinSerialLength)
-    {
-        if (strcmp(a, "PROBE")==0)
-        {
-            if (!Started)
-                ProbeBFunc();
-        }
-        else if (strcmp(a, "START")==0)
-        {
-            if (!Started)
-                StartBFunc(false);
-        }
-        else if (strcmp(a, "STARP")==0)
-        {
-            if (!Started)
-                StartBFunc(true);
-        }
-        else if (strcmp(a, "STOP")==0)
-        {
-            StopBFunc();
-        }
-        else if (strcmp(a, "Y360")==0)
-        {
-            if (!Started)
-            {
-                FinPoint = true;
-                stepper.setCurrentPosition(0);
-                stepper2.setCurrentPosition((long)360*(long)step2grad);
-                stepper3.setCurrentPosition(0);
-                Serial.println("Fin Point Set");
-                TransmitCoords();
-            }
-        }
-        else if (strcmp(a, "Y-360")==0)
-        {
-            if (!Started)
-            {
-                FinPoint = true;
-                stepper.setCurrentPosition(0);
-                stepper2.setCurrentPosition((long)-360*(long)step2grad);
-                stepper3.setCurrentPosition(0);
-                Serial.println("Fin Point Set");
-                TransmitCoords();
-            }
-        }
-        else if (strcmp(a, "POINT")==0)
-        {
-            if (!Started)
-            {
-                FinPoint = true;
-                stepper.setCurrentPosition(0);
-                stepper2.setCurrentPosition(0);
-                stepper3.setCurrentPosition(0);
-                Serial.println("Fin Point Set");
-                TransmitCoords();
-            }
-        }
-        else if (strcmp(a, "RIGHT")==0)
-        {
-            if (!Started)
-            {
-                if (LinearWelding==0){
-                    stepper2.setAcceleration(Stepper2Acc_Rotating);
-                    stepper2.setMaxSpeed(Stepper2Speed_Rotating * 4);
-                }
-                else {
-                    stepper2.setAcceleration(Stepper2Acc_Linear);
-                    stepper2.setMaxSpeed(Stepper2Speed_Linear * 4);
-                }
-            }
-            step2move = step2minMove;
-        }
-        else if (strcmp(a, "LEFT")==0)
-        {
-            if (!Started)
-            {
-                if (LinearWelding==0){
-                    stepper2.setAcceleration(Stepper2Acc_Rotating);
-                    stepper2.setMaxSpeed(Stepper2Speed_Rotating * 4);
-                }
-                else {
-                    stepper2.setAcceleration(Stepper2Acc_Linear);
-                    stepper2.setMaxSpeed(Stepper2Speed_Linear * 4);
-                }
-            }
-            step2move = -step2minMove;
-        }
-        else if (strcmp(a, "Y+")==0)
-        {
-            if (XPerm > 0)
-            {
-                if (!Started)
-                {
-                    if (LinearWelding==0){
-                        stepper3.setAcceleration(Stepper3Acc_Rotating);
-                        stepper3.setMaxSpeed(Stepper3Speed_Rotating * 4);
-                    }
-                    else {
-                        stepper3.setAcceleration(Stepper3Acc_Linear);
-                        stepper3.setMaxSpeed(Stepper3Speed_Linear * 4);
-                    }
-                }
-                step3move = step2minMove;
-            }
-        }
-        else if (strcmp(a, "Y-")==0)
-        {
-            if (XPerm > 0)
-            {
-                if (!Started)
-                {
-                    if (LinearWelding==0){
-                        stepper3.setAcceleration(Stepper3Acc_Rotating);
-                        stepper3.setMaxSpeed(Stepper3Speed_Rotating * 4);
-                    }
-                    else {
-                        stepper3.setAcceleration(Stepper3Acc_Linear);
-                        stepper3.setMaxSpeed(Stepper3Speed_Linear * 4);
-                    }
-                }
-                step3move = -step2minMove;
-            }
-        }
-        else if (strcmp(a, "UP")==0)
-        {
-            if (!Started)
-            {
-                stepper.setAcceleration(StepperAcc);
-                stepper.setMaxSpeed(StepperSpeed * 4);
-            }
-            stepmove = stepminMove;
-        }
-        else if (strcmp(a, "DOWN")==0)
-        {
-            if (!Started)
-            {
-                stepper.setAcceleration(StepperAcc);
-                stepper.setMaxSpeed(StepperSpeed * 4);
-            }
-            stepmove = -stepminMove;
-        }
-        else if (strcmp(a, "RIGHTS")==0)
-        {
-            if (!Started)
-            {
-                if (LinearWelding==0){
-                    stepper2.setAcceleration(Stepper2Acc_Rotating);
-                    stepper2.setMaxSpeed(Stepper2Speed_Rotating / 4);
-                }
-                else {
-                    stepper2.setAcceleration(Stepper2Acc_Linear);
-                    stepper2.setMaxSpeed(Stepper2Speed_Linear / 4);
-                }
-            }
-            step2move = step2minMove;
-        }
-        else if (strcmp(a, "LEFTS")==0)
-        {
-            if (!Started)
-            {
-                if (LinearWelding==0){
-                    stepper2.setAcceleration(Stepper2Acc_Rotating);
-                    stepper2.setMaxSpeed(Stepper2Speed_Rotating / 4);
-                }
-                else {
-                    stepper2.setAcceleration(Stepper2Acc_Linear);
-                    stepper2.setMaxSpeed(Stepper2Speed_Linear / 4);
-                }
-            }
-            step2move = -step2minMove;
-        }
-        else if (strcmp(a, "Y+S")==0)
-        {
-            if (XPerm > 0)
-            {
-                if (!Started)
-                {
-                    if (LinearWelding==0){
-                        stepper3.setAcceleration(Stepper3Acc_Rotating);
-                        stepper3.setMaxSpeed(Stepper3Speed_Rotating / 4);
-                    }
-                    else {
-                        stepper3.setAcceleration(Stepper3Acc_Linear);
-                        stepper3.setMaxSpeed(Stepper3Speed_Linear / 4);
-                    }
-                }
-                step3move = step2minMove;
-            }
-        }
-        else if (strcmp(a, "Y-S")==0)
-        {
-            if (XPerm > 0)
-            {
-                if (!Started)
-                {
-                    if (LinearWelding==0){
-                        stepper3.setAcceleration(Stepper3Acc_Rotating);
-                        stepper3.setMaxSpeed(Stepper3Speed_Rotating / 4);
-                    }
-                    else {
-                        stepper3.setAcceleration(Stepper3Acc_Linear);
-                        stepper3.setMaxSpeed(Stepper3Speed_Linear / 4);
-                    }
-                }
-                step3move = -step2minMove;
-            }
-        }
-        else if (strcmp(a, "UPS")==0)
-        {
-            if (!Started)
-            {
-                stepper.setAcceleration(StepperAcc);
-                stepper.setMaxSpeed(StepperSpeed / 4);
-            }
-            stepmove = stepminMove;
-        }
-        else if (strcmp(a, "DOWNS")==0)
-        {
-            if (!Started)
-            {
-                stepper.setAcceleration(StepperAcc);
-                stepper.setMaxSpeed(StepperSpeed / 4);
-            }
-            stepmove = -stepminMove;
-        }
-        else if (strcmp(a, "UT+")==0)
-        {
-            Utarget += 0.1;
-            Serial.print("Utarget:");
-            Serial.println(Utarget);
-        }
-        else if (strcmp(a, "UT-")==0)
-        {
-            Utarget -= 0.1;
-            Serial.print("Utarget:");
-            Serial.println(Utarget);
-        }
-        else if (strcmp(a, "SAVE")==0)
-        {
-            EEPROM.put(CoordAddr + 0 * ParAddrDelta, (float)stepper3.currentPosition());
-            EEPROM.put(CoordAddr + 1 * ParAddrDelta, (float)stepper2.currentPosition());
-            EEPROM.put(CoordAddr + 2 * ParAddrDelta, (float)stepper.currentPosition());
-            Serial.println("Coords Saved:");
-        }
-        else if (strcmp(a, "WELD")==0)
-        {
-            if (WeldPerm==2) RepeatMessageStart(TigStartCom);
-            if (WeldPerm==1) RadioSendRepeat(TigPointT);
-        }
+    else{
+        
     }
 }
 

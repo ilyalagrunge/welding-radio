@@ -15,6 +15,7 @@ Ticker ticker1(IMeasure, TMeasure, 0, MILLIS);
 
 int SetupReciever()
 {
+    
     pinMode(TigSwitch, OUTPUT);
     #ifdef RecieverEWM
         pinMode(Uinput, INPUT);
