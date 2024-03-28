@@ -6,6 +6,11 @@ float Zcompensation=1;
 float Ycompensation=0;
 float Xcompensation=0;
 
+int caterpillarWeld=8;
+int caterpillarPause=12;
+int curCaterpillarWeld=0;
+int curCaterpillarPause=0;
+
 float UintAbs = 0;
 long UcountAbs = -1;
 float Utarget = 0;
@@ -835,9 +840,26 @@ void WManage()
         {
             if (WaitUcounter == PulseDuration)
             {
+                bool CaterpillarWeldPerm=true;
+                if (curCaterpillarWeld==0){
+                    if (curCaterpillarPause==0){
+                        curCaterpillarPause=caterpillarPause;
+                        curCaterpillarWeld=caterpillarWeld;
+                        if (curCaterpillarWeld>0) curCaterpillarWeld--;
+                    }
+                    else{
+                        curCaterpillarPause--;
+                        CoolingCounter = RotatinDuration;
+                        CaterpillarWeldPerm=false;
+                    }
+                }
+                else{
+                    curCaterpillarWeld--;
+                }
+
                 if ((WeldPerm > 0) && (!longDistance))
                 {
-                    RadioSendRepeat(PULSE);
+                    if (CaterpillarWeldPerm) RadioSendRepeat(PULSE);
                 }
                 else if ((WeldPerm==2) && longDistance && !LongDistanceReleConfirm){
                     RadioSendRepeat(TigStartCom);
@@ -993,6 +1015,8 @@ void StartBFunc(bool p)
             Move2Point = p;
             longDistance = false;
             LongDistanceReleConfirm = false;
+            curCaterpillarWeld=caterpillarWeld;
+            curCaterpillarPause=caterpillarPause;
             EEPROM.get(ParAddr + 8 * ParAddrDelta, Utarget);
             if (Utarget < 1)
             {
