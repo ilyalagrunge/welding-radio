@@ -23,7 +23,12 @@ void RadioSetup(int WRadioType)
         radio.openWritingPipe(addresses[1 + WRadioType]);
         radio.openReadingPipe(1, addresses[0]);
     #endif
-    radio.setPALevel(RF24_PA_HIGH);
+    //radio.enableDynamicPayloads();
+    //radio.enableAckPayload();
+    radio.setPALevel(RF24_PA_MIN);
+    radio.disableDynamicPayloads();
+    //radio.setAutoAck(false);
+    //radio.setRetries(15,15);
     radio.startListening();
 
     RadioTicker.start();
@@ -107,8 +112,11 @@ void RadioSend(int Mes)
         data[i] = Mes;
     }
     radio.stopListening();
-    radio.write(&data, (dataRepeat + 1) * 2);
-    delay(5);
+    //delay(10);
+    Serial.print("radio.write=");
+    Serial.println(radio.write(&data, (dataRepeat + 1) * 2));
+    //radio.writeAckPayload(1, &data, (dataRepeat + 1) * 2);
+    //delay(10);
     radio.startListening();
 }
 

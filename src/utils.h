@@ -3,6 +3,7 @@
 #include <nRF24L01.h>
 #include <RF24.h>
 #include <Arduino.h>
+#include <GyverWDT.h>
 
 #include "transmitter.h"
 
